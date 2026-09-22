@@ -3,193 +3,82 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState, useTransition } from "react";
 import { definirAction } from "../_actions";
 
-function FormContent() {
+function Formulario() {
   const search = useSearchParams();
   const router = useRouter();
   const [hashToken, setHashToken] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [senha, setSenha] = useState("");
-  const [confirmar, setConfirmar] = useState("");
+  const [p1, setP1] = useState("");
+  const [p2, setP2] = useState("");
   const [busy, startTx] = useTransition();
 
   useEffect(() => {
     const h = window.location.hash;
     if (!h) return;
     const params = new URLSearchParams(h.startsWith("#") ? h.slice(1) : h);
-    const accessToken = params.get("access_token");
-    const type = params.get("type");
-    if (accessToken && (type === "recovery" || type === "invite")) {
-      setHashToken(accessToken);
-    }
-    history.replaceState(
-      null,
-      "",
-      window.location.pathname + window.location.search
-    );
+    const t = params.get("access_token");
+    const tipo = params.get("type");
+    if (t && (tipo === "recovery" || tipo === "invite")) setHashToken(t);
+    history.replaceState(null, "", window.location.pathname + window.location.search);
   }, []);
 
-  const queryErro = search.get("erro");
   const token = search.get("token") || hashToken;
-
+  const queryErro = search.get("erro");
   useEffect(() => {
-    if (queryErro === "1")
-      setErro("As senhas não coincidem ou têm menos de 10 caracteres.");
-    else if (queryErro === "2")
-      setErro("Não foi possível atualizar a senha. Volte a pedir recuperação.");
+    if (queryErro === "1") setErro("As palavras-passe não coincidem ou têm menos de 10 caracteres.");
+    else if (queryErro === "2") setErro("O link já não é válido. Pede um novo em Recuperar acesso.");
     else setErro(null);
   }, [queryErro]);
 
-  const pode = useMemo(
-    () => senha.length >= 10 && senha === confirmar && token && !busy,
-    [senha, confirmar, token, busy]
-  );
+  const pode = useMemo(() => p1.length >= 10 && p1 === p2 && !!token && !busy, [p1, p2, token, busy]);
 
   function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!token || !pode) return;
+    if (p1.length < 10) { setErro("Mínimo 10 caracteres."); return; }
+    if (p1 !== p2) { setErro("As palavras-passe não coincidem."); return; }
+    if (!token) return;
     const fd = new FormData();
-    fd.set("password", senha);
-    fd.set("confirmar", confirmar);
+    fd.set("password", p1);
+    fd.set("confirmar", p2);
     fd.set("token", token);
     startTx(async () => {
       try {
         await definirAction(fd);
         router.replace("/quadro");
       } catch {
-        setErro("Ocorreu um erro ao atualizar a senha.");
+        setErro("Não foi possível definir a palavra-passe.");
       }
     });
   }
 
   return (
-    <form
-      onSubmit={submit}
-      style={{ display: "flex", flexDirection: "column", gap: 16 }}
-    >
-      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Definir senha</h2>
-        {!token && (
-          <p
-            role="alert"
-            style={{
-              margin: 0,
-              fontSize: 13,
-              color: "var(--red)",
-              background: "var(--red-pale)",
-              borderRadius: 6,
-              padding: "8px 10px",
-            }}
-          >
-            Sem token de recuperação. Volta a pedir o email em recuperar.
-          </p>
-        )}
-        {erro && (
-          <p
-            role="alert"
-            style={{
-              margin: 0,
-              fontSize: 13,
-              color: "var(--red)",
-              background: "var(--red-pale)",
-              borderRadius: 6,
-              padding: "8px 10px",
-            }}
-          >
-            {erro}
-          </p>
-        )}
-        {token && !erro && (
-          <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
-            A nova senha deve ter pelo menos 10 caracteres.
-          </p>
-        )}
+    <form onSubmit={submit}>
+      <div className="auth-t">Definir palavra-passe</div>
+      <p className="auth-s">Escolhe uma palavra-passe para concluir o acesso. Mínimo 10 caracteres. O link é de uso único.</p>
+      {!token ? <p className="err-msg" role="alert" style={{ marginBottom: 14 }}>Sem link válido. Pede um novo em Recuperar acesso.</p> : null}
+      <div className="fld">
+        <label className="fld-l" htmlFor="p1">Palavra-passe</label>
+        <input id="p1" type="password" autoComplete="new-password" value={p1} onChange={(e) => setP1(e.target.value)} placeholder="mínimo 10 caracteres" disabled={!token} />
       </div>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <span style={{ fontSize: 13 }}>Nova senha</span>
-        <input
-          type="password"
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          minLength={10}
-          disabled={!token}
-          style={{
-            height: 40,
-            padding: "0 12px",
-            borderRadius: 6,
-            border: "1px solid var(--border)",
-            background: "var(--bg)",
-            color: "var(--fg)",
-          }}
-        />
-      </label>
-
-      <label style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-        <span style={{ fontSize: 13 }}>Confirmar senha</span>
-        <input
-          type="password"
-          value={confirmar}
-          onChange={(e) => setConfirmar(e.target.value)}
-          minLength={10}
-          disabled={!token}
-          style={{
-            height: 40,
-            padding: "0 12px",
-            borderRadius: 6,
-            border: "1px solid var(--border)",
-            background: "var(--bg)",
-            color: "var(--fg)",
-          }}
-        />
-      </label>
-
-      <button
-        type="submit"
-        disabled={!pode}
-        style={{
-          height: 40,
-          borderRadius: 6,
-          background: pode ? "var(--fg)" : "var(--border)",
-          color: pode ? "var(--bg)" : "var(--muted)",
-          border: "none",
-          fontSize: 14,
-          fontWeight: 600,
-        }}
-      >
-        Guardar senha
-      </button>
-
-      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13 }}>
-        <Link href="/entrar" style={{ color: "var(--muted)" }}>
-          ← Voltar
-        </Link>
+      <div className="fld">
+        <label className="fld-l" htmlFor="p2">Repetir</label>
+        <input id="p2" type="password" autoComplete="new-password" value={p2} onChange={(e) => setP2(e.target.value)} disabled={!token} />
       </div>
+      {erro ? <p className="err-msg" role="alert">{erro}</p> : null}
+      <button type="submit" className="btn" style={{ marginTop: 6 }} disabled={!pode}>Concluir</button>
+      <p className="auth-foot"><Link href="/entrar">Voltar</Link></p>
     </form>
   );
 }
 
 export default function DefinirPage() {
   return (
-    <Suspense
-      fallback={
-        <div
-          style={{
-            padding: "40px 16px",
-            display: "grid",
-            placeItems: "center",
-            color: "var(--muted)",
-            fontSize: 13,
-          }}
-        >
-          A preparar…
-        </div>
-      }
-    >
-      <FormContent />
+    <Suspense fallback={<p className="auth-s">A preparar…</p>}>
+      <Formulario />
     </Suspense>
   );
 }

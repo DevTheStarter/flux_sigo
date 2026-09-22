@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClientServer } from "../../../../lib/supabase/server";
+import { createClientService } from "../../../../lib/supabase/service";
 import { log } from "../../../../lib/log";
 
 export const dynamic = "force-dynamic";
@@ -8,6 +9,7 @@ export const revalidate = 0;
 type CriarEntidadeBody = {
   nome: string;
   nipc?: string;
+  fonte_tipo?: string;
   ativa?: boolean;
   contrato_assinado?: boolean;
   setup_em?: string;
@@ -29,6 +31,65 @@ async function validarStaff(supabase: any, user: { id: string }) {
   if (me.funcao !== "staff")
     return NextResponse.json({ erro: "Sem permissão" }, { status: 403 });
   return null;
+}
+
+/**
+ * GET: lista de entidades para a página Entidades (§15). Só staff.
+ * Usa o service role apenas para ler `config_entidade.fonte_tipo`; nunca devolve
+ * credenciais nem conteúdo do quadro.
+ */
+export async function GET() {
+  try {
+    const supabase = await createClientServer();
+    let user: { id: string } | null = null;
+    try {
+      const res = await supabase.auth.getUser();
+      user = (res.data as any)?.user ?? null;
+    } catch {
+      user = null;
+    }
+    if (!user || !user.id) return NextResponse.json({ erro: "Sem sessão" }, { status: 401 });
+    const forbidden = await validarStaff(supabase, user);
+    if (forbidden) return forbidden;
+
+    const sb = createClientService();
+    const [ents, users, cfgs, probs] = await Promise.all([
+      sb.from("entidades").select("id, nome, nipc, ativa, suporte, setup_em, contrato_assinado, criada_em").order("criada_em", { ascending: false }),
+      sb.from("utilizadores").select("entidade_id, ultimo_acesso"),
+      sb.from("config_entidade").select("entidade_id, fonte_tipo, fonte_base"),
+      sb.from("problemas_reportados").select("entidade_id, estado"),
+    ]);
+    if (ents.error) throw ents.error;
+    const porEnt = new Map<string, { utilizadores: number; ultimaAtividade: string | null }>();
+    for (const u of (users.data ?? []) as { entidade_id: string; ultimo_acesso: string | null }[]) {
+      const e = porEnt.get(u.entidade_id) ?? { utilizadores: 0, ultimaAtividade: null };
+      e.utilizadores += 1;
+      if (u.ultimo_acesso && (!e.ultimaAtividade || u.ultimo_acesso > e.ultimaAtividade)) e.ultimaAtividade = u.ultimo_acesso;
+      porEnt.set(u.entidade_id, e);
+    }
+    const fonte = new Map<string, { tipo: string | null; configurada: boolean }>();
+    for (const c of (cfgs.data ?? []) as { entidade_id: string; fonte_tipo: string | null; fonte_base: string | null }[]) {
+      fonte.set(c.entidade_id, { tipo: c.fonte_tipo, configurada: !!c.fonte_base });
+    }
+    const abertos = new Map<string, number>();
+    for (const p of (probs.data ?? []) as { entidade_id: string | null; estado: string }[]) {
+      if (p.estado === "aberto" && p.entidade_id) abertos.set(p.entidade_id, (abertos.get(p.entidade_id) ?? 0) + 1);
+    }
+    const lista = ((ents.data ?? []) as any[]).map((e) => ({
+      ...e,
+      utilizadores: porEnt.get(e.id)?.utilizadores ?? 0,
+      ultimaAtividade: porEnt.get(e.id)?.ultimaAtividade ?? null,
+      fonteTipo: fonte.get(e.id)?.tipo ?? null,
+      fonteConfigurada: fonte.get(e.id)?.configurada ?? false,
+      problemasAbertos: abertos.get(e.id) ?? 0,
+      /** o adaptador ainda não reporta acoes_count; ver docs/PLANO-UI.md */
+      acoes: null as number | null,
+    }));
+    return NextResponse.json({ entidades: lista });
+  } catch (e) {
+    log.error("entidades GET inesperado", { err: (e as Error).message });
+    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
@@ -115,6 +176,17 @@ export async function POST(req: Request) {
         },
         { status: 422 },
       );
+    }
+
+    // fonte escolhida na criação (§15); o trigger já criou a linha de config_entidade
+    const fonteTipo = typeof body.fonte_tipo === "string" && body.fonte_tipo.trim() ? body.fonte_tipo.trim().toLowerCase() : null;
+    if (fonteTipo) {
+      try {
+        const sb = createClientService();
+        await sb.from("config_entidade").upsert({ entidade_id: inserted.id, fonte_tipo: fonteTipo } as any, { onConflict: "entidade_id" });
+      } catch (e) {
+        log.warn("entidades post fonte_tipo não gravado", { err: (e as Error).message });
+      }
     }
 
     log.info("entidades post criar concluído", {

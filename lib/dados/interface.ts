@@ -30,6 +30,8 @@ export interface EstadoLigacao {
   ok: boolean;
   ultimaLeitura: string | null;
   erro: string | null;
+  /** aviso de configuração, por exemplo a tabela de formandos estar acessível (§7.2) */
+  aviso?: string | null;
 }
 
 export interface FonteDeDados {

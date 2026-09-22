@@ -13,6 +13,30 @@ const PROTEGIDAS = [
 
 const STAFF_APENAS = ["/api/admin"];
 
+/**
+ * CSP com nonce por pedido (§19). O App Router precisa de scripts inline para
+ * hidratar; um nonce permite-os sem 'unsafe-inline'. O Next lê o nonce do
+ * cabeçalho Content-Security-Policy do pedido e aplica-o aos seus scripts.
+ */
+function cspComNonce(): { nonce: string; csp: string } {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  const nonce = btoa(String.fromCharCode(...bytes));
+  const dev = process.env.NODE_ENV !== "production";
+  const csp = [
+    "default-src 'self'",
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${dev ? " 'unsafe-eval'" : ""}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob:",
+    "font-src 'self' data:",
+    `connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL ?? ""}`.trim(),
+    "frame-ancestors 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+  ].join("; ");
+  return { nonce, csp };
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -20,7 +44,12 @@ export async function middleware(request: NextRequest) {
     (p) => pathname === p || pathname.startsWith(p + "/")
   );
 
-  const res = NextResponse.next();
+  const { nonce, csp } = cspComNonce();
+  const reqHeaders = new Headers(request.headers);
+  reqHeaders.set("x-nonce", nonce);
+  reqHeaders.set("Content-Security-Policy", csp);
+  const res = NextResponse.next({ request: { headers: reqHeaders } });
+  res.headers.set("Content-Security-Policy", csp);
 
   // 1. Criar cliente Supabase e sincronizar SEMPRE os cookies (mesmo em rotas
   //    não protegidas) — evita perda de sessão em redirects ou navegação.
@@ -60,6 +89,7 @@ export async function middleware(request: NextRequest) {
     url.pathname = "/entrar";
     url.searchParams.set("next", pathname);
     const redirect = NextResponse.redirect(url);
+    redirect.headers.set("Content-Security-Policy", csp);
     // Propagar quaisquer cookies atualizados para o redirect também.
     const resCookies = res.cookies.getAll();
     for (const c of resCookies) redirect.cookies.set(c.name, c.value, c as any);
@@ -103,6 +133,6 @@ export const config = {
      *     middleware de proteção).
      * Depois filtramos programaticamente em PROTEGIDAS acima.
      */
-    "/((?!_next/static|_next/image|favicon.ico|robots.png|robots.txt|fonts/|base/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|robots.png|robots.txt|fonts/|docs/|tema.js|base/).*)",
   ],
 };
