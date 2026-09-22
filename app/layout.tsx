@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   title: "Fluxo",
   description: "Gestão de fluxos formativos",
   applicationName: "Fluxo",
-  authors: [{ name: "The Starter" }],
+  authors: [{ name: "TheStarter" }],
 };
 
 export default function RootLayout({
