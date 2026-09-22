@@ -57,7 +57,7 @@ export async function recuperarAction(formData: FormData) {
       log.error("auth reset email exception", { err: (e as any)?.message ?? String(e) });
     }
   }
-  redirect("/entrar?recuperar=1", RedirectType.replace);
+  redirect("/recuperar?enviado=1", RedirectType.replace);
 }
 
 /**

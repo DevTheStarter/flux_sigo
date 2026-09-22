@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClientService } from "../../../../lib/supabase/service";
-import { desencriptar } from "../../../../lib/cifra";
+import { tokenDaCredencial } from "../../../../lib/dados/credencial";
 import { criarAirtable, type AirtableCfg } from "../../../../lib/dados/airtable";
 import { derivar, type Cartao } from "../../../../lib/dados/derivar";
 import type { Acao, Registo } from "../../../../lib/dados/interface";
@@ -119,14 +119,9 @@ export async function POST(req: Request) {
         }
         if (!cfg || !cfg.fonte_base) continue;
 
-        const credencialCifrada = (
-          cfg.fonte_credencial as Record<string, unknown>
-        )?.crm_token as string | undefined;
-        if (!credencialCifrada) continue;
-
         let token: string;
         try {
-          const maybeToken = await desencriptar(credencialCifrada);
+          const maybeToken = await tokenDaCredencial(cfg.fonte_credencial);
           if (!maybeToken) continue;
           token = maybeToken;
         } catch {

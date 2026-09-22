@@ -1,144 +1,64 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect } from "react";
 import { createPortal } from "react-dom";
 
 export interface ModalProps {
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
+  /** título simples; para cabeçalhos com subtítulo usar `header` */
   title?: string;
-  actions?: React.ReactNode;
-  /** impede fechar por backdrop/ESC, a menos que actions sejam perigosas (delete confirm). */
-  blocking?: boolean;
-  widthPx?: number;
+  subtitle?: React.ReactNode;
+  header?: React.ReactNode;
+  lg?: boolean;
+  /** rótulo acessível quando não há título */
+  label?: string;
 }
 
-export function Modal({
-  open,
-  onClose,
-  children,
-  title,
-  actions,
-  blocking,
-  widthPx = 520,
-}: ModalProps) {
-  const ref = useRef<HTMLDivElement | null>(null);
-
+/**
+ * Modal do protótipo: desktop centrado (450px / 530px), mobile em ecrã inteiro
+ * com cabeçalho fixo e ×. Bloqueia o scroll e esconde a navegação inferior
+ * através de `body.locked` (spec §18.3).
+ */
+export function Modal({ open, onClose, children, title, subtitle, header, lg, label }: ModalProps) {
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape" && !blocking) onClose();
+      if (e.key === "Escape") onClose();
     }
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    document.body.classList.add("locked");
     window.addEventListener("keydown", onKey);
     return () => {
+      document.body.classList.remove("locked");
       window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
     };
-  }, [open, onClose, blocking]);
+  }, [open, onClose]);
 
   if (!open || typeof document === "undefined") return null;
 
   return createPortal(
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={title ?? "modal"}
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: 50,
-        display: "grid",
-        placeItems: "center",
-        padding: 16,
+      className="ovl"
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div
-        aria-hidden
-        onClick={() => {
-          if (!blocking) onClose();
-        }}
-        style={{
-          position: "absolute",
-          inset: 0,
-          background: "rgba(15, 15, 15, 0.55)",
-        }}
-      />
-      <div
-        ref={ref}
-        style={{
-          position: "relative",
-          width: "100%",
-          maxWidth: widthPx,
-          background: "var(--panel)",
-          border: "1px solid var(--border)",
-          borderRadius: 6,
-          boxShadow: "var(--shadow-dropdown)",
-          display: "flex",
-          flexDirection: "column",
-          maxHeight: "calc(100vh - 64px)",
-          overflow: "hidden",
-        }}
-      >
-        {(title || !blocking) && (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "12px 16px",
-              borderBottom: "1px solid var(--border)",
-            }}
-          >
-            <h3
-              style={{
-                margin: 0,
-                fontSize: 14,
-                fontWeight: 600,
-              }}
-            >
-              {title}
-            </h3>
-            {!blocking && (
-              <button
-                aria-label="Fechar"
-                onClick={onClose}
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 6,
-                  border: "1px solid var(--border)",
-                  background: "transparent",
-                  color: "var(--muted)",
-                  cursor: "pointer",
-                  display: "grid",
-                  placeItems: "center",
-                  fontFamily: "inherit",
-                  fontSize: 16,
-                  lineHeight: 1,
-                }}
-              >
-                ×
-              </button>
+      <div className={"modal" + (lg ? " lg" : "")} role="dialog" aria-modal="true" aria-label={title ?? label ?? "Janela"}>
+        {(title || header) && (
+          <div className="m-h">
+            {header ?? (
+              <div>
+                <div className="m-t">{title}</div>
+                {subtitle ? <div className="m-s">{subtitle}</div> : null}
+              </div>
             )}
+            <button className="m-x" aria-label="Fechar" onClick={onClose} type="button">
+              ×
+            </button>
           </div>
         )}
-        <div style={{ padding: 16, overflow: "auto" }}>{children}</div>
-        {actions && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: 8,
-              padding: "12px 16px",
-              borderTop: "1px solid var(--border)",
-            }}
-          >
-            {actions}
-          </div>
-        )}
+        {children}
       </div>
     </div>,
     document.body

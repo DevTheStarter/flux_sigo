@@ -23,18 +23,7 @@ const nextConfig = {
             key: "Referrer-Policy",
             value: "strict-origin-when-cross-origin",
           },
-          {
-            key: "Content-Security-Policy",
-            value: [
-              "default-src 'self'",
-              "img-src 'self' data: blob:",
-              "style-src 'self' 'unsafe-inline'",
-              "script-src 'self' 'unsafe-eval'",
-              "font-src 'self' data:",
-              "connect-src 'self'",
-              "frame-ancestors 'none'",
-            ].join("; "),
-          },
+          // Content-Security-Policy é definida no middleware, com nonce por pedido (§19).
         ],
       },
     ];

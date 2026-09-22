@@ -17,6 +17,8 @@ export interface AirtableCfg {
   token: string;
   tabelaAcoes?: string;
   tabelaRegistos?: string;
+  /** só para verificarLigacao(): se estiver acessível é um aviso de configuração (§7.2) */
+  tabelaFormandos?: string;
   /** nome do nosso campo → nome do campo no Airtable da entidade */
   mapaCampos?: Record<string, string>;
   /** { campo: valor } ou { campo: { $neq: valor } } ou { campo: { $in: [x,y] } } */
@@ -89,8 +91,19 @@ const TBL_REGISTOS_PADRAO = "Logs de execução";
 
 const CACHE_TTL_MS = 15 * 60 * 1000;
 
-type CacheEntry<T> = { data: T; ate: number };
+type CacheEntry<T> = { data: T; ate: number; lida: number };
 const cache = new Map<string, CacheEntry<unknown>>();
+
+/** Limpa a cache de uma base (Definições → "Sincronizar agora"). Só memória. */
+export function invalidarCache(baseId: string) {
+  cache.delete(`at:${baseId}`);
+}
+
+/** Instante da última leitura em cache para esta base, ou null. Best-effort em serverless. */
+export function ultimaLeituraDe(baseId: string): string | null {
+  const e = cache.get(`at:${baseId}`);
+  return e ? new Date(e.lida).toISOString() : null;
+}
 
 function cacheGet<T>(k: string): T | undefined {
   const e = cache.get(k) as CacheEntry<T> | undefined;
@@ -102,7 +115,7 @@ function cacheGet<T>(k: string): T | undefined {
   return e.data;
 }
 function cacheSet<T>(k: string, data: T, ttl: number = CACHE_TTL_MS) {
-  cache.set(k, { data, ate: Date.now() + ttl });
+  cache.set(k, { data, ate: Date.now() + ttl, lida: Date.now() });
 }
 
 function urlB64(s: string): string {
@@ -390,9 +403,24 @@ export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
         const agora = new Date().toISOString();
         const path = `/${encodeURIComponent(baseId)}/${encodeURIComponent(tblAcoes)}?maxRecords=1`;
         await airtableFetch(token, path);
-        return { ok: true, ultimaLeitura: agora, erro: null };
+        const pathLogs = `/${encodeURIComponent(baseId)}/${encodeURIComponent(tblRegistos)}?maxRecords=1`;
+        await airtableFetch(token, pathLogs);
+        // §7.2: a tabela de formandos estar acessível é um aviso de configuração, não sucesso.
+        // Nada é lido dela: maxRecords=1 e a resposta é descartada.
+        let aviso: string | null = null;
+        if (cfg.tabelaFormandos) {
+          try {
+            const pathF = `/${encodeURIComponent(baseId)}/${encodeURIComponent(cfg.tabelaFormandos)}?maxRecords=1&fields[]=`;
+            await airtableFetch(token, pathF);
+            aviso =
+              "A credencial consegue ler a tabela de formandos. Recomendamos um token só de leitura restrito às duas tabelas.";
+          } catch {
+            aviso = null;
+          }
+        }
+        return { ok: true, ultimaLeitura: agora, erro: null, aviso };
       } catch (e: any) {
-        return { ok: false, ultimaLeitura: null, erro: e?.message ?? String(e) };
+        return { ok: false, ultimaLeitura: null, erro: e?.message ?? String(e), aviso: null };
       }
     },
   };
