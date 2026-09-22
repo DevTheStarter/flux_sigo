@@ -1,0 +1,20 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "region": "fra1",
+  "crons": [
+    {
+      "path": "/api/cron/prazos",
+      "schedule": "0 * * * *"
+    },
+    {
+      "path": "/api/cron/relatorio",
+      "schedule": "0 9 * * 1"
+    },
+    {
+      "path": "/api/cron/purge",
+      "schedule": "0 3 * * *"
+    }
+  ],
+  "headers": []
+}

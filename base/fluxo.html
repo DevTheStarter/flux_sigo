@@ -1,0 +1,2674 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fluxo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fff;--fg:#111;--muted:#8d8d8d;--soft:#636363;--line:#e8e8e8;--ls:#d0d0d0;--hover:#fafafa;--red:#b4443c;--red-s:#faf4f3;--red-b:#e8d2cf;--sh:0 4px 16px rgba(0,0,0,.09);--navh:0px}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e0e0e;--fg:#f2f2f2;--muted:#777;--soft:#a8a8a8;--line:#242424;--ls:#3c3c3c;--hover:#171717;--red:#e08a84;--red-s:#1a1413;--red-b:#3a2725;--sh:0 4px 16px rgba(0,0,0,.5);--navh:0px}}
+:root[data-theme="dark"]{--bg:#0e0e0e;--fg:#f2f2f2;--muted:#777;--soft:#a8a8a8;--line:#242424;--ls:#3c3c3c;--hover:#171717;--red:#e08a84;--red-s:#1a1413;--red-b:#3a2725;--sh:0 4px 16px rgba(0,0,0,.5);--navh:0px}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit;cursor:pointer;background:none;border:none;color:inherit;text-align:left}
+input,select{font-family:inherit;font-size:13px;background:var(--bg);color:var(--fg);border:.5px solid var(--ls);border-radius:5px;padding:8px 11px;outline:none;width:100%}
+input:focus,select:focus{border-color:var(--fg)}
+input::placeholder{color:var(--muted)}
+a{color:inherit}
+.hide{display:none!important}
+
+/* header */
+.hdr{border-bottom:.5px solid var(--line);padding:0 30px;height:57px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--bg);z-index:30}
+.hl{display:flex;align-items:center;gap:32px}
+.logo{font-size:16px;font-weight:500;letter-spacing:-.3px;padding:4px 0}
+.logo:hover{opacity:.7}
+.nav{display:flex;gap:20px}
+.nav button{font-size:13px;color:var(--muted);padding:2px 0;border-bottom:1px solid transparent}
+.nav button:hover{color:var(--soft)}
+.nav button.on{color:var(--fg);border-bottom-color:var(--fg)}
+.hr{display:flex;align-items:center;gap:13px;position:relative}
+.sync{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:6px;position:relative;cursor:default}
+.tip{position:absolute;top:26px;right:0;background:var(--fg);color:var(--bg);font-size:11px;line-height:1.5;padding:8px 11px;border-radius:6px;width:max-content;max-width:230px;opacity:0;visibility:hidden;transform:translateY(-3px);transition:.14s;pointer-events:none;z-index:45;text-align:left}
+.sync:hover .tip{opacity:1;visibility:visible;transform:translateY(0)}
+.sync-d{width:5px;height:5px;border-radius:50%;background:var(--fg)}
+.sync.err{color:var(--fg);font-weight:500}
+.sync.err .sync-d{background:var(--fg);animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.25}}
+.ico-b{width:30px;height:30px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:15px;position:relative;color:var(--soft)}
+.ico-b:hover{background:var(--hover);color:var(--fg)}
+.badge{position:absolute;top:4px;right:4px;width:6px;height:6px;border-radius:50%;background:var(--fg)}
+.ava{width:28px;height:28px;border-radius:50%;background:var(--fg);color:var(--bg);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;flex-shrink:0}
+.ava.sm{width:22px;height:22px;font-size:9px}
+.ava.gh{background:transparent;color:var(--soft);border:.5px solid var(--ls)}
+
+/* dropdown */
+.dd{position:absolute;top:44px;right:0;background:var(--bg);border:.5px solid var(--ls);border-radius:7px;box-shadow:var(--sh);min-width:238px;padding:6px;z-index:40}
+.dd.wide{min-width:330px;padding:0}
+.dd-u{padding:11px 11px 12px;border-bottom:.5px solid var(--line);margin-bottom:5px}
+.dd-n{font-size:13px;font-weight:500}
+.dd-e{font-size:11px;color:var(--muted);margin-top:1px}
+.dd-i{display:block;width:100%;padding:8px 11px;font-size:13px;border-radius:5px;color:var(--soft)}
+.dd-i:hover{background:var(--hover);color:var(--fg)}
+.dd-sep{height:.5px;background:var(--line);margin:5px 0}
+.dd-h{padding:12px 14px;border-bottom:.5px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+.dd-h-t{font-size:12px;font-weight:500}
+.dd-h-a{font-size:11px;color:var(--muted)}
+.dd-h-a:hover{color:var(--fg)}
+.nt{padding:12px 14px;border-bottom:.5px solid var(--line);display:flex;gap:10px}
+.nt:last-child{border-bottom:none}
+.nt:hover{background:var(--hover)}
+.nt.un{background:var(--hover)}
+.nt-b{flex:1;min-width:0;display:block}
+.nt-t{display:block;font-size:12px;line-height:1.45}
+.nt-m{display:block;font-size:10px;color:var(--muted);margin-top:4px}
+
+.wrap{max-width:1560px;margin:0 auto}
+.page{padding:28px 30px 0}
+h1{font-size:25px;font-weight:500;letter-spacing:-.7px}
+h2{font-size:15px;font-weight:500;letter-spacing:-.2px}
+.sub{font-size:12px;color:var(--muted);margin-top:5px}
+.ph{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:20px;gap:20px;flex-wrap:wrap}
+.stats{display:flex;gap:28px}
+.stat{text-align:left}
+.stat-n{font-size:23px;font-weight:500;line-height:1}
+.stat-l{font-size:11px;color:var(--muted);margin-top:5px}
+.stat.act .stat-n,.stat.act .stat-l{text-decoration:underline;text-underline-offset:3px}
+
+/* views bar */
+.vbar{display:flex;align-items:center;gap:3px;border-bottom:.5px solid var(--line);flex-wrap:wrap;padding-bottom:0}
+.vtab{font-size:13px;padding:8px 12px;color:var(--muted);border-bottom:1.5px solid transparent;margin-bottom:-1px}
+.vtab:hover{color:var(--soft)}
+.vtab.on{color:var(--fg);border-bottom-color:var(--fg);font-weight:500}
+.vtab .x{font-size:11px;margin-left:6px;opacity:.5}
+.vtab .x:hover{opacity:1}
+.vadd{font-size:13px;padding:8px 11px;color:var(--muted)}
+.vadd:hover{color:var(--fg)}
+.vinfo{padding:11px 2px 0;font-size:11px;color:var(--muted);display:flex;gap:7px;align-items:center;flex-wrap:wrap}
+.cond{border:.5px solid var(--ls);border-radius:4px;padding:2px 8px;font-size:11px;color:var(--soft)}
+
+/* board */
+/* ---- login ---- */
+/* ---- landing ---- */
+/* ---- demos animadas ---- */
+/* ---- mock de browser ---- */
+.bw{background:var(--bg)}
+.bw-bar{display:flex;align-items:center;gap:12px;padding:9px 13px;border-bottom:.5px solid var(--line)}
+.bw-dots{display:flex;gap:5px;flex-shrink:0}
+.bw-dots i{width:8px;height:8px;border-radius:50%;background:var(--line);display:block}
+.bw-url{flex:1;font-size:10px;color:var(--muted);background:var(--hover);border:.5px solid var(--line);border-radius:4px;padding:4px 10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bw-body{display:grid;grid-template-columns:1.25fr 1fr;gap:1px;background:var(--line);min-height:186px}
+.bw-form{background:var(--bg);padding:15px 16px}
+.bw-log{background:var(--bg);padding:15px 16px}
+.bw-f{margin-bottom:9px}
+.bw-fl{font-size:8.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:3px;display:block}
+.bw-fi{border:.5px solid var(--line);border-radius:4px;padding:5px 8px;font-size:10px;min-height:22px;color:var(--fg);transition:.18s}
+.bw-fi.foco{border-color:var(--fg);background:var(--hover)}
+.bw-fi.vazio{color:var(--muted)}
+.bw-btn{display:inline-block;background:var(--fg);color:var(--bg);font-size:9.5px;font-weight:500;padding:6px 14px;border-radius:4px;margin-top:4px;transition:.18s}
+.bw-btn.press{transform:scale(.95);opacity:.8}
+.bw-lt{font-size:8.5px;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:10px}
+.bw-li{display:flex;gap:7px;font-size:10px;line-height:1.5;margin-bottom:7px;color:var(--soft);animation:dmin .3s ease-out}
+.bw-li i{font-style:normal;flex-shrink:0;color:var(--fg)}
+.bw-li.pend{color:var(--muted)}
+.bw-li.pend i{color:var(--muted)}
+@media(max-width:760px){.bw-body{grid-template-columns:1fr}}
+/* ---- calculadora ---- */
+.nums{display:flex;flex-wrap:wrap;gap:1px;background:var(--line);border:.5px solid var(--line);border-radius:8px;overflow:hidden;margin-top:30px}
+.num{background:var(--bg);flex:1 1 118px;padding:15px 14px;min-width:0}
+.num.wide{flex:1 1 190px}
+.num-n{display:block;font-size:16px;font-weight:500;letter-spacing:-.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.num-l{display:block;font-size:11px;color:var(--muted);margin-top:4px}
+.gar{margin-top:30px;max-width:640px}
+.gar-i{display:flex;gap:16px;padding:18px 0;border-bottom:.5px solid var(--line)}
+.gar-i:first-child{border-top:.5px solid var(--line)}
+.gar-n{font-size:11px;color:var(--muted);flex-shrink:0;padding-top:3px}
+.gar-b{flex:1;display:block}
+.gar-t{display:block;font-size:15px;font-weight:500;letter-spacing:-.2px;margin-bottom:6px}
+.gar-s{display:block;font-size:14px;color:var(--soft);line-height:1.7}
+.cc{border:.5px solid var(--line);border-radius:10px;overflow:hidden;margin-top:34px}
+.cc-in{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line)}
+.cc-f{background:var(--bg);padding:20px 20px 18px}
+.cc-l{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:12px;display:block}
+.cc-row{display:flex;align-items:baseline;gap:10px}
+.cc-v{font-size:30px;font-weight:500;letter-spacing:-.9px;line-height:1;min-width:52px}
+.cc-u{font-size:12px;color:var(--muted)}
+.cc-s{-webkit-appearance:none;appearance:none;width:100%;height:2px;background:var(--ls);border-radius:2px;margin-top:18px;padding:0;border:none;outline:none;cursor:pointer}
+.cc-s::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--fg);cursor:pointer;border:none}
+.cc-s::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:var(--fg);cursor:pointer;border:none}
+.cc-out{background:var(--bg);border-top:.5px solid var(--line);padding:26px 22px;display:flex;gap:40px;align-items:flex-start;flex-wrap:wrap}
+.cc-main{flex:1 1 330px;min-width:0}
+.cc-side{flex:0 1 330px;min-width:0}
+.cc-box{display:block;background:var(--fg);color:var(--bg);border-radius:8px;padding:22px 24px 24px}
+.cc-box-l{display:block;font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;opacity:.6;margin-bottom:10px}
+.cc-box-n{display:block;font-size:52px;font-weight:500;letter-spacing:-2px;line-height:1;font-variant-numeric:tabular-nums}
+.cc-sub{font-size:13px;color:var(--soft);margin-top:16px;line-height:1.7}
+.cc-sub b{color:var(--fg);font-weight:500}
+.cc-brk{display:grid;grid-template-columns:1fr 1fr;gap:16px 26px}
+.cc-b-n{font-size:16px;font-weight:500}
+.cc-b-l{font-size:11px;color:var(--muted);margin-top:3px}
+.cc-note{background:var(--bg);border-top:.5px solid var(--line);padding:14px 20px;font-size:11px;color:var(--muted);line-height:1.7}
+@media(max-width:900px){.cc-in{grid-template-columns:1fr}}
+@media(max-width:760px){.cc-box-n{font-size:40px;letter-spacing:-1.4px}.cc-box{padding:18px 20px 20px}.cc-out{gap:24px;padding:22px 18px}}
+.dm{border:.5px solid var(--line);border-radius:10px;overflow:hidden;background:var(--bg);margin-top:34px}
+.dm-bar{display:flex;align-items:center;justify-content:space-between;padding:11px 15px;border-bottom:.5px solid var(--line);gap:12px}
+.dm-t{font-size:11px;font-weight:500;letter-spacing:-.1px}
+.dm-sync{font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.dm-dot{width:5px;height:5px;border-radius:50%;background:var(--muted)}
+.dm-dot.live{background:var(--fg);animation:dmp 1.6s ease-in-out infinite}
+@keyframes dmp{50%{opacity:.25}}
+.dm-cols{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:var(--line);min-height:400px}
+.dm-col{background:var(--bg);padding:11px 8px 18px;min-height:0;overflow:hidden}
+.dm-ch{display:flex;align-items:baseline;justify-content:space-between;gap:5px;font-size:8.5px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:9px}
+.dm-ch span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dm-cn{letter-spacing:0;flex-shrink:0}
+.dm-card{border:.5px solid var(--line);border-radius:5px;padding:8px 7px;margin-bottom:5px;transition:opacity .3s}
+.dm-card.foco{animation:dmin .34s ease-out}
+.dm-card:not(.foco):not(.dim){opacity:.62}
+.dm-dt{font-size:8px;color:var(--muted);margin-bottom:6px}
+.dm-tg{display:inline-block;font-size:7.5px;border:.5px solid var(--ls);border-radius:3px;padding:0 4px;color:var(--muted);margin-bottom:6px;line-height:1.5}
+@keyframes dmin{from{opacity:0;transform:translateY(-5px)}to{opacity:1;transform:none}}
+.dm-card.act{border-color:var(--fg)}
+.dm-card.red{border-color:var(--red-b);background:var(--red-s)}
+.dm-card.dim{opacity:.35}
+.dm-n{font-size:9.5px;font-weight:500;line-height:1.3;margin-bottom:3px}
+.dm-d{font-size:8.5px;color:var(--muted);line-height:1.35}
+.dm-d.hot{color:var(--fg);font-weight:500}
+.dm-d.red{color:var(--red);font-weight:500}
+.dm-cap{padding:12px 15px;border-top:.5px solid var(--line);font-size:11.5px;color:var(--soft);line-height:1.6;height:56px;display:flex;align-items:center}
+.dm-cap b{color:var(--fg);font-weight:500}
+
+.dm-cols{position:relative}
+.dmo{position:absolute;inset:0;background:rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;padding:10px;animation:dmfade .3s ease-out;z-index:3}
+@keyframes dmfade{from{opacity:0}to{opacity:1}}
+.dmo-c{background:var(--bg);border:.5px solid var(--ls);border-radius:8px;width:100%;max-width:290px;padding:13px 15px 15px;box-shadow:0 8px 28px rgba(0,0,0,.28);animation:dmpop .3s ease-out}
+@keyframes dmpop{from{opacity:0;transform:translateY(7px) scale(.97)}to{opacity:1;transform:none}}
+.dmo-h{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.dmo-t{font-size:12px;font-weight:500;line-height:1.3}
+.dmo-x{font-size:14px;color:var(--muted);line-height:1}
+.dmo-s{font-size:9.5px;color:var(--muted);margin-top:3px;margin-bottom:12px}
+.dmo-l{font-size:8px;font-weight:500;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:9px}
+.dmo-st{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+.dmo-st.off{opacity:.34}
+.dmo-d{width:9px;height:9px;border-radius:50%;border:1px solid var(--ls);flex-shrink:0}
+.dmo-d.on{background:var(--fg);border-color:var(--fg)}
+.dmo-d.now{border:1.5px solid var(--fg)}
+.dmo-n{font-size:9.5px;flex:1;line-height:1.3}
+.dmo-m{font-size:8.5px;color:var(--muted);flex-shrink:0}
+.dmo-b{background:var(--fg);color:var(--bg);border-radius:5px;padding:7px;font-size:9.5px;font-weight:500;text-align:center;margin-top:11px}
+/* representação simplificada do SIGO: cores fixas, é um produto externo */
+.dmo.sigo{padding:0;background:rgba(0,0,0,.5)}
+.sg{width:100%;height:100%;background:#fff;display:flex;flex-direction:column;overflow:hidden;animation:dmpop .32s ease-out}
+.sg-bar{display:flex;align-items:center;gap:9px;padding:6px 10px;background:#e9e9ec;border-bottom:1px solid #d5d5da;flex-shrink:0}
+.sg-dots{display:flex;gap:4px}
+.sg-dots i{width:6px;height:6px;border-radius:50%;background:#c3c3ca;display:block}
+.sg-url{flex:1;font-size:8px;color:#6b6b74;background:#fff;border:1px solid #d9d9df;border-radius:3px;padding:2px 7px}
+.sg-body{flex:1;display:flex;min-height:0}
+.sg-app{flex:1;display:flex;flex-direction:column;min-width:0;background:#fff}
+.sg-top{display:flex;align-items:center;justify-content:space-between;padding:8px 11px;border-bottom:1px solid #e4e4e8}
+.sg-logo{height:19px;width:auto;display:block}
+.sg-chip{width:44px;height:7px;border-radius:4px;background:#e4e4e8;display:block}
+.sg-main{flex:1;display:flex;min-height:0}
+.sg-side{width:74px;flex-shrink:0;padding:8px 7px;border-right:1px solid #e4e4e8;display:flex;flex-direction:column;gap:3px}
+.sg-mi{height:8px;border-radius:2px;background:#ececed;display:block;margin-left:7px}
+.sg-mi.on{background:#5bc3cb;margin-left:7px}
+.sg-sec{height:11px;border-radius:2px;background:#3f8f9c;display:block;opacity:.85}
+.sg-form{flex:1;padding:9px 11px;min-width:0;display:flex;flex-direction:column}
+.sg-ent{border:1px dashed #d2d2d8;border-radius:2px;padding:5px 7px;margin-bottom:9px}
+.sg-ent-b{display:block;width:44%;height:6px;border-radius:2px;background:#dcdce1}
+.sg-h{display:block;width:62px;height:7px;border-radius:2px;background:#2e8b99;margin-bottom:9px}
+.sg-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;margin-bottom:10px}
+.sg-f{display:flex;align-items:center;gap:6px}
+.sg-l{width:34px;height:5px;border-radius:2px;background:#dcdce1;flex-shrink:0;display:block}
+.sg-i{flex:1;height:13px;border:1px solid #cdcdd4;border-radius:2px;background:#f1f1f3;display:block}
+.sg-i.fill{background:#e7e7ea}
+.sg-i.ativo{border-color:#00A3AD;box-shadow:0 0 0 2px rgba(0,163,173,.2);background:#f4fdfd}
+.sg-tabs{display:flex;gap:3px;margin-bottom:0}
+.sg-tab{width:56px;height:15px;border-radius:2px 2px 0 0;background:#dedee2;display:block}
+.sg-tab.on{background:#fff;border:1px solid #d2d2d8;border-bottom:none;height:16px}
+.sg-tbl{border:1px solid #d9d9df;border-radius:0 2px 2px 2px;overflow:hidden;flex:1;min-height:0}
+.sg-tr{display:flex;gap:1px;background:#e2e2e6}
+.sg-tr i{display:block;height:13px;background:#fff}
+.sg-tr.alt i{background:#f3f3f5}
+.sg-tr.head i{background:#ddd;height:15px}
+.sg-btn{display:block;width:46px;height:13px;border-radius:2px;background:#00A3AD;margin-top:8px;align-self:flex-end}
+
+/* painel do assistente, no espírito da interface do Claude */
+.sg-ai{width:168px;flex-shrink:0;background:#1a1a19;color:#e6e4e0;display:flex;flex-direction:column;border-left:1px solid #000}
+.sg-ai-top{display:flex;align-items:center;gap:5px;padding:8px 10px;border-bottom:1px solid #2a2a28}
+.sg-ai-logo{width:11px;height:11px}
+.sg-ai-n{font-size:9px;font-weight:500}
+.sg-ai-conv{flex:1;padding:9px 10px;display:flex;flex-direction:column;gap:7px;overflow:hidden}
+.sg-ai-u{align-self:flex-end;max-width:92%;background:#2f2f2c;border-radius:9px 9px 3px 9px;padding:6px 8px;font-size:7.5px;line-height:1.55;color:#e6e4e0}
+.sg-ai-c{font-size:7.5px;line-height:1.6;color:#c6c3bd}
+.sg-ai-in{margin:0 10px 10px;border:1px solid #3a3a37;border-radius:8px;padding:6px 8px;font-size:7.5px;color:#6f6c67;display:flex;align-items:center;justify-content:space-between}
+.sg-ai-send{width:13px;height:13px;border-radius:50%;background:#D97757;color:#1a1a19;font-size:8px;display:flex;align-items:center;justify-content:center}
+@media(max-width:760px){.sg-ai{display:none}.sg-side{width:48px}}
+.dmo-err{border:.5px solid var(--red-b);border-left:2px solid var(--red);background:var(--red-s);border-radius:0;padding:8px 10px;margin-top:11px}
+.dmo-err-t{display:block;font-size:9.5px;font-weight:500;color:var(--red);margin-bottom:3px}
+.dmo-err-s{display:block;font-size:8.5px;color:var(--soft);line-height:1.5}
+.dmo-ta{border:.5px solid var(--ls);border-radius:5px;padding:7px 9px;font-size:9px;color:var(--soft);line-height:1.5;min-height:34px}
+.dmo-imgs{display:flex;gap:5px;margin-top:7px}
+.dmo-img{width:28px;height:28px;border-radius:4px;background:var(--line);border:.5px solid var(--ls);display:block}
+.dmo-add{width:28px;height:28px;border-radius:4px;border:1px dashed var(--ls);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--muted)}
+.dm2{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line)}
+.dm2-p{background:var(--bg);padding:17px 16px}
+.dm-mt{font-size:12px;font-weight:500;margin-bottom:3px}
+.dm-ms{font-size:10px;color:var(--muted);margin-bottom:13px}
+.dm-step{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.dm-sd{width:11px;height:11px;border-radius:50%;border:1px solid var(--ls);flex-shrink:0}
+.dm-sd.on{background:var(--fg);border-color:var(--fg)}
+.dm-sd.now{border:1.5px solid var(--fg)}
+.dm-st{font-size:10px;flex:1}
+.dm-step.todo{opacity:.35}
+.dm-btn{background:var(--fg);color:var(--bg);border-radius:5px;padding:8px;font-size:10.5px;font-weight:500;text-align:center;margin-top:12px;transition:.2s}
+.dm-btn.on{transform:scale(.97);opacity:.85}
+.dm-paste{background:var(--surface,var(--hover));border:.5px solid var(--line);border-radius:5px;padding:9px;font-family:ui-monospace,monospace;font-size:9.5px;line-height:1.6;color:var(--soft);min-height:74px;white-space:pre-wrap;word-break:break-word}
+.dm-cursor{display:inline-block;width:5px;height:11px;background:var(--fg);vertical-align:-1px;animation:dmc .9s step-end infinite}
+@keyframes dmc{50%{opacity:0}}
+@media(max-width:760px){
+  /* seis colunas numa linha só: tudo encolhe, nada quebra */
+  .dm-cols{grid-template-columns:repeat(6,1fr);min-height:262px}
+  .dm-col{min-height:0;padding:8px 3px 12px}
+  .dm-ch{font-size:6.5px;letter-spacing:.2px;margin-bottom:6px;gap:2px}
+  .dm-cn{font-size:7px}
+  .dm-card{padding:5px 4px;margin-bottom:4px;border-radius:4px}
+  .dm-n{font-size:7px;line-height:1.25;margin-bottom:2px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .dm-dt{font-size:5.5px;margin-bottom:3px}
+  .dm-tg{display:none}
+  .dm-d{font-size:6px;line-height:1.25;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .dm-bar{padding:9px 11px}
+  .dm-t{font-size:10px}
+  .dm-sync{font-size:8.5px}
+  .dm2{grid-template-columns:1fr}
+  .dm-cap{height:auto;min-height:60px;padding:11px 13px;font-size:11px}
+  .dmo-c{max-width:none;padding:11px 12px 13px}
+  .dmo-t{font-size:11px}
+  .dmo-n{font-size:9px}
+}
+@media(max-width:400px){
+  .dm-ch{font-size:6px}
+  .dm-n{font-size:6.5px}
+  .dm-cols{min-height:248px}
+}
+.lp{min-height:100vh}
+.lp-nav{max-width:1000px;margin:0 auto;padding:26px 28px;display:flex;align-items:center;justify-content:space-between}
+.lp-logo{font-size:17px;font-weight:500;letter-spacing:-.3px}
+.lp-entrar{font-size:13px;border:.5px solid var(--ls);border-radius:6px;padding:8px 16px}
+.lp-entrar:hover{border-color:var(--fg);background:var(--hover)}
+.lp-w{max-width:1000px;margin:0 auto;padding:0 28px}
+.lp-hero{padding:82px 0 70px;max-width:640px}
+.lp-h1{font-size:46px;font-weight:500;letter-spacing:-1.6px;line-height:1.08;margin-bottom:22px}
+.lp-lead{font-size:17px;color:var(--soft);line-height:1.65}
+.lp-sec{padding:58px 0;border-top:.5px solid var(--line)}
+.lp-lbl{font-size:11px;font-weight:500;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);margin-bottom:26px}
+.lp-h2{font-size:26px;font-weight:500;letter-spacing:-.7px;margin-bottom:16px;max-width:560px;line-height:1.25}
+.lp-p{font-size:15px;color:var(--soft);line-height:1.75;max-width:600px;margin-bottom:14px}
+.lp-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);border:.5px solid var(--line);border-radius:8px;overflow:hidden;margin-top:34px}
+.lp-c{background:var(--bg);padding:26px 22px}
+.lp-c-n{font-size:11px;color:var(--muted);margin-bottom:12px}
+.lp-c-t{font-size:15px;font-weight:500;margin-bottom:8px;letter-spacing:-.2px}
+.lp-c-s{font-size:13px;color:var(--soft);line-height:1.65}
+.lp-flows{display:flex;gap:1px;background:var(--line);border:.5px solid var(--line);border-radius:8px;overflow:hidden;margin-top:30px}
+.lp-f{background:var(--bg);flex:1;padding:18px 12px;text-align:center}
+.lp-f-n{font-size:10px;color:var(--muted);margin-bottom:6px}
+.lp-f-t{font-size:12px;font-weight:500;line-height:1.35}
+.lp-list{max-width:600px;margin-top:8px}
+.lp-li{display:flex;gap:14px;padding:15px 0;border-bottom:.5px solid var(--line);font-size:14px;color:var(--soft);line-height:1.6}
+.lp-li:first-child{border-top:.5px solid var(--line)}
+.lp-li b{color:var(--fg);font-weight:500}
+.lp-li-n{color:var(--muted);flex-shrink:0;font-size:12px;padding-top:2px}
+.lp-cta{padding:62px 0 76px;border-top:.5px solid var(--line)}
+.lp-btns{display:flex;gap:10px;margin-top:26px;flex-wrap:wrap}
+.lp-b{font-size:14px;padding:12px 22px;border-radius:7px;background:var(--fg);color:var(--bg);font-weight:500}
+.lp-b:hover{opacity:.85}
+.lp-b.sec{background:transparent;color:var(--fg);border:.5px solid var(--ls)}
+.lp-b.sec:hover{border-color:var(--fg);background:var(--hover);opacity:1}
+.lp-foot{border-top:.5px solid var(--line);padding:24px 28px;font-size:12px;color:var(--muted)}
+.lp-foot-w{max-width:1000px;margin:0 auto;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+@media(max-width:760px){
+  .lp-hero{padding:52px 0 44px}
+  .lp-h1{font-size:33px;letter-spacing:-1px}
+  .lp-lead{font-size:15px}
+  .lp-h2{font-size:21px}
+  .lp-sec{padding:42px 0}
+  .lp-grid{grid-template-columns:1fr}
+  .num{flex:1 1 44%;padding:13px 12px}
+  .num.wide{flex:1 1 100%}
+  .num-n{font-size:15px}
+  .lp-flows{flex-wrap:wrap}
+  .lp-f{min-width:31%}
+  .lp-w,.lp-nav{padding-left:18px;padding-right:18px}
+}
+.auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+.auth-box{width:100%;max-width:348px}
+.auth-logo{font-size:19px;font-weight:500;letter-spacing:-.4px;margin-bottom:30px}
+.auth-t{font-size:20px;font-weight:500;letter-spacing:-.4px;margin-bottom:5px}
+.auth-s{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:24px}
+.auth .fld{margin-bottom:13px}
+.auth-foot{margin-top:16px;font-size:12px;color:var(--muted)}
+.auth-foot button{font-size:12px;text-decoration:underline;text-underline-offset:2px}
+.auth-foot button:hover{color:var(--fg)}
+.auth-note{margin-top:30px;padding-top:18px;border-top:.5px solid var(--line);font-size:11px;color:var(--muted);line-height:1.7}
+.demo{margin-top:12px;display:flex;gap:6px}
+.demo button{flex:1;font-size:11px;border:.5px solid var(--ls);border-radius:5px;padding:7px;color:var(--soft);text-align:center}
+.demo button:hover{border-color:var(--fg);color:var(--fg)}
+.err-msg{font-size:12px;color:var(--red);margin-top:10px}
+.tag-st{font-size:9px;background:var(--fg);color:var(--bg);border-radius:3px;padding:2px 6px;margin-left:8px;letter-spacing:.3px;vertical-align:2px}
+
+/* ---- entidades ---- */
+.ent-row{display:flex;align-items:center;gap:14px;padding:15px 0;border-bottom:.5px solid var(--line);width:100%;text-align:left}
+.ent-row:first-of-type{border-top:.5px solid var(--line)}
+.ent-row:hover{background:var(--hover)}
+.ent-n{font-size:13px;font-weight:500}
+.ent-m{font-size:11px;color:var(--muted);margin-top:3px;display:block}
+.ent-b{flex:1;min-width:0;display:block}
+.dot-s{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot-s.ok{background:var(--fg)}
+.dot-s.off{background:var(--ls)}
+.dot-s.warn{background:var(--red)}
+.kpi{display:flex;gap:34px;padding:2px 0 26px;flex-wrap:wrap}
+.kpi-n{font-size:24px;font-weight:500;line-height:1}
+.kpi-l{font-size:11px;color:var(--muted);margin-top:5px}
+.drop{display:flex;flex-direction:column;align-items:center;gap:4px;border:1px dashed var(--ls);border-radius:7px;padding:18px 14px;cursor:pointer;text-align:center;transition:.12s}
+.drop:hover{border-color:var(--fg);background:var(--hover)}
+.drop-t{font-size:12px;font-weight:500;color:var(--fg)}
+.drop-s{font-size:11px;color:var(--muted)}
+.anexo{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--line)}
+.anexo img{width:36px;height:36px;object-fit:cover;border-radius:4px;border:.5px solid var(--line);flex-shrink:0}
+.anexo-b{flex:1;min-width:0;display:block}
+.anexo-n{display:block;font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.anexo-s{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.anexo-x{font-size:17px;color:var(--muted);line-height:1;padding:0 4px;flex-shrink:0}
+.anexo-x:hover{color:var(--fg)}
+textarea{font-family:inherit;font-size:13px;background:var(--bg);color:var(--fg);border:.5px solid var(--ls);border-radius:5px;padding:9px 11px;outline:none;width:100%;line-height:1.6;resize:vertical}
+textarea:focus{border-color:var(--fg)}
+textarea::placeholder{color:var(--muted)}
+.ed{width:100%;min-height:320px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;line-height:1.7;padding:14px;resize:vertical}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px}
+.srow{display:flex;gap:9px;align-items:center;margin:14px 0 0}
+.bsearch{max-width:330px;padding:8px 12px;font-size:13px}
+.sclear{font-size:11px;color:var(--muted);text-decoration:underline;text-underline-offset:2px}
+.sclear:hover{color:var(--fg)}
+.sretry{font-size:11px;color:var(--red);text-decoration:underline;text-underline-offset:2px;margin-left:3px}
+.sk{background:var(--line);border-radius:4px;animation:sh 1.3s ease-in-out infinite}
+@keyframes sh{50%{opacity:.45}}
+.sk-card{border:.5px solid var(--line);border-radius:6px;padding:11px;margin-bottom:7px}
+.dscope{display:flex;gap:4px;flex-wrap:wrap;margin:6px 0 16px;padding-bottom:14px;border-bottom:.5px solid var(--line)}
+.dsc{font-size:12px;padding:6px 11px;border:.5px solid var(--ls);border-radius:5px;color:var(--soft);display:flex;align-items:center;gap:7px}
+.dsc:hover{border-color:var(--fg);color:var(--fg)}
+.dsc.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.dsc-n{font-size:10px;opacity:.6}
+.dsc-n.red{color:var(--red);opacity:1;font-weight:500}
+.dsc.on .dsc-n.red{color:var(--bg)}
+.dsc-desc{font-size:12px;color:var(--muted);margin:0 0 14px;line-height:1.6}
+.dvar{display:inline-block;font-size:10px;font-weight:400;color:var(--muted);border:.5px solid var(--ls);border-radius:3px;padding:1px 6px;margin-left:7px;vertical-align:1px}
+.dvar.on{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.dvar.red{color:var(--red);border-color:var(--red-b);background:var(--red-s)}
+.dnota{display:block;font-size:11px;font-weight:400;color:var(--muted);margin-top:4px}
+.dvrow{background:var(--hover)}
+.vtag{display:inline-block;font-family:ui-monospace,monospace;font-size:11.5px;background:var(--hover);border:.5px solid var(--ls);border-radius:3px;padding:0 5px;color:var(--fg)}
+.vtag.seg{border-style:dashed}
+.vtag.falta{border-color:var(--red-b);color:var(--red)}
+.vbar2{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--hover);border:.5px solid var(--line);border-radius:7px;padding:10px 13px;margin-bottom:20px;flex-wrap:wrap}
+.vbar2-t{font-size:12px;color:var(--soft)}
+.doclink{display:block;text-align:center;font-size:11px;color:var(--muted);margin-top:11px;text-decoration:underline;text-underline-offset:2px}
+.doclink:hover{color:var(--fg)}
+.confirm{font-size:12px;color:var(--soft);line-height:1.6;margin-bottom:4px}
+.board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:1px;background:var(--line);margin-top:14px}
+.col{background:var(--bg);padding:17px 11px 30px;min-height:430px}
+.col-h{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;padding:0 2px}
+.col-t{font-size:10px;font-weight:500;text-transform:uppercase;letter-spacing:.7px}
+.col-n{font-size:11px;color:var(--muted)}
+.card{border:.5px solid var(--line);border-radius:6px;padding:11px;margin-bottom:7px;width:100%;display:block;transition:.12s}
+.card:hover{border-color:var(--fg);background:var(--hover)}
+.card.urgent{border:.5px solid var(--fg)}
+.card.stuck{border:.5px solid var(--red-b);background:var(--red-s)}
+.card.stuck:hover{border-color:var(--red);background:var(--red-s)}
+.card.blocked{border:.5px dashed var(--red-b);background:var(--red-s)}
+.card.blocked:hover{border-color:var(--red);background:var(--red-s)}
+.card.done{opacity:.38}
+.card.futura{opacity:.5;border-style:dashed}
+.card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:7px;margin-bottom:6px}
+.card-t{font-size:12px;font-weight:500;line-height:1.35}
+.card-d{font-size:10px;color:var(--soft);margin-bottom:8px}
+.tags{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+.tag{font-size:9px;border:.5px solid var(--ls);padding:1px 5px;border-radius:3px;color:var(--soft)}
+.due{font-size:10px;color:var(--muted)}
+.due.hot{color:var(--fg);font-weight:500}
+.due.red{color:var(--red);font-weight:500}
+.stat-n.red{color:var(--red)}
+.more{font-size:11px;color:var(--muted);padding:9px 2px 0;display:block;text-decoration:underline;text-underline-offset:2px}
+.more:hover{color:var(--fg)}
+.empty{font-size:11px;color:var(--muted);padding:8px 2px}
+
+/* modal */
+.ovl{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:22px;z-index:50}
+.ovl.open{display:flex}
+.modal{background:var(--bg);border-radius:8px;width:100%;max-width:450px;max-height:90vh;overflow-y:auto;border:.5px solid var(--line)}
+.modal.lg{max-width:530px}
+.m-h{padding:20px 23px 16px;border-bottom:.5px solid var(--line);display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
+.m-t{font-size:17px;font-weight:500;letter-spacing:-.3px;line-height:1.3}
+.m-s{font-size:12px;color:var(--soft);margin-top:4px}
+.m-x{font-size:21px;color:var(--muted);line-height:1;padding:0 3px}
+.m-x:hover{color:var(--fg)}
+.m-sec{padding:18px 23px;border-bottom:.5px solid var(--line)}
+.m-lbl{font-size:10px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px}
+.step{display:flex;align-items:center;gap:11px;margin-bottom:10px}
+.step:last-child{margin-bottom:0}
+.dot{width:15px;height:15px;border-radius:50%;flex-shrink:0;border:1px solid var(--ls)}
+.dot.done{background:var(--fg);border-color:var(--fg)}
+.dot.now{border:1.5px solid var(--fg)}
+.step-t{font-size:13px;flex:1}
+.step.now .step-t{font-weight:500}
+.step.todo{opacity:.38}
+.step-m{font-size:11px;color:var(--muted)}
+.step.now .step-m{color:var(--fg);font-weight:500}
+.step-m.red{color:var(--red)}
+.dot.now.red{border-color:var(--red)}
+table{width:100%;font-size:12px;border-collapse:collapse}
+td{padding:4px 0;vertical-align:top}
+td:first-child{color:var(--muted);white-space:nowrap;padding-right:14px}
+td:last-child{text-align:right}
+.m-f{padding:17px 23px 21px}
+.calc{display:inline-block;font-size:9px;color:var(--muted);border:.5px solid var(--ls);border-radius:3px;padding:1px 5px;margin-left:7px;vertical-align:1px;cursor:help}
+.btn{width:100%;background:var(--fg);color:var(--bg);border-radius:6px;padding:11px;font-size:13px;font-weight:500;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .12s}
+.btn:hover{opacity:.85}
+.btn:disabled{opacity:.28;cursor:not-allowed}
+.btn.sec{background:transparent;color:var(--fg);border:.5px solid var(--ls)}
+.btn.sec:hover{border-color:var(--fg);opacity:1;background:var(--hover)}
+.btn.sm{padding:8px 13px;width:auto;font-size:12px}
+.hint{font-size:11px;color:var(--muted);text-align:center;line-height:1.55;margin-top:9px}
+.note{border:.5px solid var(--red-b);border-left:2px solid var(--red);background:var(--red-s);border-radius:0;padding:11px 13px;margin-bottom:12px}
+.note-t{display:block;font-size:12px;font-weight:500;margin-bottom:4px;color:var(--red)}
+.note.neutro{border-color:var(--ls);border-left-color:var(--fg);background:var(--hover)}
+.note-t2{display:block;font-size:12px;font-weight:500;margin-bottom:4px;color:var(--fg)}
+.note-s{display:block;font-size:11px;color:var(--soft);line-height:1.6}
+.row2{display:flex;gap:8px;margin-top:8px}
+.link{font-size:11px;color:var(--muted);text-decoration:underline;text-underline-offset:2px}
+.link:hover{color:var(--fg)}
+.fld{margin-bottom:14px}
+.fld-l{font-size:12px;font-weight:500;margin-bottom:6px;display:block}
+.fld-h{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.5}
+.crow{display:flex;gap:7px;margin-bottom:7px;align-items:center}
+.crow select{flex:1}
+.crow .del{color:var(--muted);font-size:16px;padding:0 5px;flex-shrink:0}
+.crow .del:hover{color:var(--fg)}
+
+/* settings */
+.stabs{display:flex;gap:2px;border-bottom:.5px solid var(--line);margin-bottom:26px;flex-wrap:wrap}
+.stab{font-size:13px;padding:9px 13px;color:var(--muted);border-bottom:1.5px solid transparent;margin-bottom:-1px}
+.stab:hover{color:var(--soft)}
+.stab.on{color:var(--fg);border-bottom-color:var(--fg);font-weight:500}
+.sblock{max-width:620px;margin-bottom:38px}
+.sblock h2{margin-bottom:5px}
+.sdesc{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.6}
+.lrow{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:.5px solid var(--line)}
+.lrow:first-of-type{border-top:.5px solid var(--line)}
+.lrow-b{flex:1;min-width:0;display:block}
+.lrow-t{display:block;font-size:13px;font-weight:500}
+.lrow-s{display:block;font-size:11px;color:var(--muted);margin-top:3px}
+.pill{font-size:10px;border:.5px solid var(--ls);border-radius:3px;padding:2px 7px;color:var(--soft);white-space:nowrap}
+.pill.fill{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.tog{width:36px;height:20px;border-radius:10px;border:.5px solid var(--ls);position:relative;flex-shrink:0;transition:.15s}
+.tog i{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--ls);transition:.15s}
+.tog.on{background:var(--fg);border-color:var(--fg)}
+.tog.on i{left:18px;background:var(--bg)}
+.emails{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:11px}
+.etag{font-size:12px;border:.5px solid var(--ls);border-radius:4px;padding:4px 9px;display:flex;align-items:center;gap:7px}
+.etag .x{color:var(--muted);font-size:13px;line-height:1}
+.etag .x:hover{color:var(--fg)}
+.inline{display:flex;gap:8px;align-items:center}
+.inline input{flex:1}
+
+/* docs */
+.search{padding:11px 14px;font-size:14px}
+.res-n{font-size:11px;color:var(--muted);margin:11px 0 0}
+.res{border-top:.5px solid var(--line);padding:16px 0}
+.res-h{display:flex;align-items:center;gap:9px;margin-bottom:7px;flex-wrap:wrap}
+.res-f{font-size:12px;font-weight:500}
+.res-l{font-size:11px;color:var(--muted)}
+.res-x{font-size:13px;color:var(--soft);line-height:1.65}
+mark{background:var(--fg);color:var(--bg);padding:0 3px;border-radius:2px}
+.reader{max-width:720px;padding-top:6px}
+.rback{font-size:12px;color:var(--muted);margin-bottom:20px;display:inline-block}
+.rback:hover{color:var(--fg)}
+.rhead{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;padding-bottom:16px;border-bottom:.5px solid var(--line);margin-bottom:26px;flex-wrap:wrap}
+.rname{font-size:19px;font-weight:500;letter-spacing:-.4px}
+.rmeta{font-size:12px;color:var(--muted);margin-top:4px}
+.md h3{font-size:15px;font-weight:500;margin:30px 0 10px;letter-spacing:-.2px}
+.md h3:first-child{margin-top:0}
+.md p{font-size:14px;color:var(--soft);line-height:1.75;margin-bottom:12px}
+.md ul{margin:0 0 14px 18px}
+.md li{font-size:14px;color:var(--soft);line-height:1.75;margin-bottom:5px}
+.md code{font-family:var(--font-mono,ui-monospace,monospace);font-size:12.5px;background:var(--hover);border:.5px solid var(--line);border-radius:3px;padding:1px 5px}
+.md b{color:var(--fg);font-weight:500}
+.md .tbl{border-top:.5px solid var(--line);margin:4px 0 18px}
+.md .tr{display:flex;gap:16px;border-bottom:.5px solid var(--line);padding:9px 0;font-size:13px}
+.md .tr b{flex:0 0 190px;font-weight:500;color:var(--fg)}
+.md .tr span{flex:1;color:var(--soft);line-height:1.6}
+.drow{border-top:.5px solid var(--line);padding:14px 0;display:flex;align-items:center;gap:12px;width:100%}
+.drow:hover{background:var(--hover)}
+.drow:last-child{border-bottom:.5px solid var(--line)}
+.dn{flex:1;font-size:13px;font-weight:500}
+.dm{font-size:11px;color:var(--muted)}
+.foot{border-top:.5px solid var(--line);margin-top:44px;padding:17px 30px;font-size:11px;color:var(--muted)}
+.toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--fg);color:var(--bg);font-size:12px;padding:10px 18px;border-radius:6px;opacity:0;transition:.22s;z-index:80}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+/* bottom nav (mobile only) */
+.bnav{display:none;position:fixed;left:0;right:0;bottom:0;min-height:var(--navh);align-items:center;background:var(--bg);border-top:.5px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));z-index:60}
+.bn{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px 4px;border-radius:7px;color:var(--muted)}
+.bn svg{width:21px;height:21px}
+.bn span{font-size:10px;letter-spacing:.1px}
+.bn.on{color:var(--fg)}
+.bn.on span{font-weight:500}
+
+@media(max-width:1250px) and (min-width:761px){
+  .board{grid-template-columns:repeat(6,minmax(172px,1fr));overflow-x:auto}
+  .page{padding:22px 16px 0}.hdr{padding:0 16px}.sync{display:none}
+}
+
+@media(max-width:760px){
+  :root,:root[data-theme]{--navh:calc(66px + env(safe-area-inset-bottom))}
+  .hdr{padding:0 16px;height:52px;justify-content:space-between}
+  .hl{gap:0}
+  .nav,.sync,.org{display:none}
+  .hdr .ico-b[aria-label="Conta"]{display:none}
+  .page{padding:20px 16px 0}
+  #v-board,#v-docs,#v-set{padding-bottom:calc(var(--navh) + 28px)}
+  .sblock:last-child{margin-bottom:0}
+  h1{font-size:21px}
+  .ph{align-items:flex-start;flex-direction:column;gap:16px;margin-bottom:16px}
+  .stats{gap:26px;width:100%}
+  .stat-n{font-size:20px}
+  .vbar{overflow-x:auto;flex-wrap:nowrap;-webkit-overflow-scrolling:touch}
+  .vtab,.vadd{white-space:nowrap;flex-shrink:0}
+  .bsearch{max-width:none}
+  .board{display:block;background:transparent;margin-top:18px}
+  .col{padding:0;min-height:0;margin-bottom:26px}
+  .col-h{padding:0 0 9px;border-bottom:.5px solid var(--line);margin-bottom:11px;align-items:center}
+  .col-t{font-size:11px}
+  .card{padding:14px;margin-bottom:9px}
+  .card-t{font-size:14px}
+  .card-d{font-size:12px;margin-bottom:9px}
+  .tag{font-size:10px;padding:2px 7px}
+  .due{font-size:12px}
+  .empty{padding:2px 0 4px}
+  .bnav{display:flex}
+  body{padding-bottom:calc(var(--navh) + 12px)}
+  .toast{bottom:calc(var(--navh) + 16px)}
+  .foot{margin-top:30px;padding:16px}
+  .ovl{padding:0;align-items:stretch;background:var(--bg)}
+  .modal{max-width:none;width:100%;height:100%;max-height:none;border:none;border-radius:0;overflow-y:auto}
+  .m-h{position:sticky;top:0;background:var(--bg);z-index:2;padding:16px 18px 14px;align-items:center}
+  .m-t{font-size:16px}
+  .m-x{font-size:26px;padding:0 4px;color:var(--fg)}
+  .m-sec,.m-f{padding-left:18px;padding-right:18px}
+  .m-f{padding-bottom:34px}
+  body.locked{overflow:hidden}
+  body.locked .bnav{display:none}
+  .dd.wide{min-width:0;width:calc(100vw - 32px);right:-8px}
+  .stabs{overflow-x:auto;flex-wrap:nowrap}
+  .stab{white-space:nowrap;flex-shrink:0}
+  .reader{padding-top:0}
+  .md .tr{flex-direction:column;gap:3px}
+  .md .tr b{flex:none}
+}
+</style>
+</head>
+<body>
+
+<section id="v-lp" class="lp">
+  <nav class="lp-nav">
+    <span class="lp-logo">Fluxo</span>
+    <button class="lp-entrar" onclick="verLogin()">Entrar</button>
+  </nav>
+
+  <div class="lp-w">
+    <div class="lp-hero">
+      <h1 class="lp-h1">Gestão de dados, inscrições e emissão de certificados no SIGO. Simplificada e eficiente.</h1>
+      <p class="lp-lead" style="font-size:14px;color:var(--muted)">Para entidades formadoras certificadas pela DGERT.</p>
+      <div class="lp-btns" style="margin-top:28px">
+        <a class="lp-b" href="mailto:people@thestarter.io?subject=Fluxo">Falar connosco</a>
+      </div>
+    </div>
+
+    <div class="dm">
+      <div class="dm-bar">
+        <span class="dm-t">Quadro SIGO</span>
+        <span class="dm-sync"><span class="dm-dot live"></span><span id="dm1-sync">Sincronizado há 4 min</span></span>
+      </div>
+      <div class="dm-cols" id="dm1"></div>
+      <div class="dm-cap"><span id="dm1-cap"></span></div>
+    </div>
+  </div>
+
+  <div class="lp-w">
+    <section class="lp-sec">
+      <h2 class="lp-h2">Fechar uma ação de formação no SIGO leva dias de trabalho administrativo.</h2>
+      <p class="lp-p">Copiar os dados de cada formando de um email ou de um contrato. Criar o curso, os módulos e a ação de formação. Inscrever um a um. Lançar nota a nota. Emitir certificado a certificado.</p>
+      <p class="lp-p">Não há importação nem atalho. Há formulários, e paciência.</p>
+
+      <div class="lp-list" style="margin-top:30px">
+        <div class="lp-li"><span class="lp-li-n">01</span><span>Os dados dos formandos <b>chegam incompletos ou errados</b>.</span></div>
+        <div class="lp-li"><span class="lp-li-n">02</span><span>A mesma informação repetida no email, na ficha de inscrição, no SIGO e no DTP. <b>Quando há divergências, é preciso descobrir qual das versões está correta.</b></span></div>
+        <div class="lp-li"><span class="lp-li-n">03</span><span>Uma ação de formação leva semanas a fechar. <b>São horas de trabalho qualificado gastas em tarefas administrativas.</b></span></div>
+      </div>
+    </section>
+
+    <section class="lp-sec">
+      <h2 class="lp-h2">O Fluxo acompanha cada ação de formação ao longo de seis fases no SIGO.</h2>
+      <p class="lp-p">Um quadro com tudo o que está por fazer, e quando. Ligado à base de dados que vocês já usam, da recolha dos dados dos formandos até à ação concluída.</p>
+
+      <div class="lp-flows">
+        <div class="lp-f"><div class="lp-f-n">0</div><div class="lp-f-t">Dados</div></div>
+        <div class="lp-f"><div class="lp-f-n">1</div><div class="lp-f-t">Perfis</div></div>
+        <div class="lp-f"><div class="lp-f-n">2</div><div class="lp-f-t">Curso</div></div>
+        <div class="lp-f"><div class="lp-f-n">3</div><div class="lp-f-t">Ação</div></div>
+        <div class="lp-f"><div class="lp-f-n">4</div><div class="lp-f-t">Certificação</div></div>
+        <div class="lp-f"><div class="lp-f-n">5</div><div class="lp-f-t">Conclusão</div></div>
+      </div>
+
+      <div class="lp-grid">
+        <div class="lp-c">
+          <div class="lp-c-n">01</div>
+          <div class="lp-c-t">Lê a vossa base de dados</div>
+          <div class="lp-c-s">Liga ao Airtable, Google Sheets ou Notion que vocês já usam. Os cartões movem-se sozinhos à medida que os passos ficam feitos. Nada é copiado para fora.</div>
+        </div>
+        <div class="lp-c">
+          <div class="lp-c-n">02</div>
+          <div class="lp-c-t">Avisa antes do prazo</div>
+          <div class="lp-c-s">Atrasos e bloqueios à vista no quadro, e um resumo semanal por email para quem precisar, incluindo a direção.</div>
+        </div>
+        <div class="lp-c">
+          <div class="lp-c-n">03</div>
+          <div class="lp-c-t">Guarda o como se faz</div>
+          <div class="lp-c-s">As instruções de cada passo, pesquisáveis, sempre atualizadas. Quando o SIGO muda, atualizamos e todos recebem.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="lp-sec">
+      <h2 class="lp-h2">Executam vocês. O Fluxo diz o quê e quando.</h2>
+      <div class="lp-list">
+        <div class="lp-li"><span class="lp-li-n">01</span><span>O quadro mostra que a ação de formação <b>UXA002</b> está pronta para o passo seguinte.</span></div>
+        <div class="lp-li"><span class="lp-li-n">02</span><span>Abrem o cartão e copiam a <b>instrução já preenchida</b> com os dados da ação de formação.</span></div>
+        <div class="lp-li"><span class="lp-li-n">03</span><span>Colam no assistente de IA e o passo corre <b>no computador da entidade</b>.</span></div>
+        <div class="lp-li"><span class="lp-li-n">04</span><span>O quadro <b>atualiza-se sozinho</b> quando o registo aparece na vossa base de dados.</span></div>
+      </div>
+      <div class="dm">
+        <div class="dm2">
+          <div class="dm2-p">
+            <div class="dm-mt">UX Avançado · Março 2026</div>
+            <div class="dm-ms">UXA002 · 11 formandos</div>
+            <div id="dm2-steps"></div>
+            <div class="dm-btn" id="dm2-btn">Copiar instrução do Flow 1</div>
+          </div>
+          <div class="dm2-p">
+            <div class="dm-mt">Assistente de IA da entidade</div>
+            <div class="dm-ms">No computador designado</div>
+            <div class="dm-paste" id="dm2-paste"></div>
+          </div>
+        </div>
+        <div class="dm-cap"><span id="dm2-cap"></span></div>
+      </div>
+      <div class="dm" style="margin-top:14px">
+        <div class="bw">
+          <div class="bw-bar">
+            <span class="bw-dots"><i></i><i></i><i></i></span>
+            <span class="bw-url" id="bw-url">SIGO · Gestão de Formandos</span>
+          </div>
+          <div class="bw-body">
+            <div class="bw-form" id="bw-form"></div>
+            <div class="bw-log" id="bw-log"></div>
+          </div>
+        </div>
+        <div class="dm-cap"><span id="bw-cap"></span></div>
+      </div>
+      <p class="lp-p" style="margin-top:26px">O assistente de Inteligência Artificial entra no SIGO <b>no computador da entidade, com a sessão e os acessos da entidade</b>. Nada corre nos nossos servidores.</p>
+    </section>
+
+    <section class="lp-sec">
+      <h2 class="lp-h2">Os dados dos formandos nunca saem da vossa base de dados.</h2>
+      <p class="lp-p">O Fluxo lê ações de formação, datas e estados de execução. Não copia, não guarda, não sincroniza. Se deixarem de usar, não perdem nada, porque nunca esteve do nosso lado.</p>
+      <p class="lp-p">Alojamento na União Europeia. Contrato de subcontratação nos termos do artigo 28 do RGPD, assinado antes de começarmos.</p>
+    </section>
+
+    <section class="lp-sec">
+      <h2 class="lp-h2">Somos uma entidade formadora certificada. Construímos o Fluxo para nós.</h2>
+      <p class="lp-p">A TheStarter é uma escola de UX, produto e design certificada pela DGERT, a operar em Portugal e no Brasil. Passámos pelos mesmos seis passos, pelos mesmos prazos e pelos mesmos erros de validação do SIGO às onze da noite.</p>
+      <p class="lp-p">Corremos este sistema na nossa operação desde janeiro de 2026. Hoje processamos cerca de 75 formandos em 4 a 5 ações de formação em simultâneo por mês, com uma pessoa a supervisionar.</p>
+
+      <div class="nums">
+        <div class="num"><span class="num-n">DGERT</span><span class="num-l">Certificada</span></div>
+        <div class="num"><span class="num-n">2.400+</span><span class="num-l">Formandos</span></div>
+        <div class="num"><span class="num-n">270+</span><span class="num-l">Empresas</span></div>
+        <div class="num"><span class="num-n">PT · BR</span><span class="num-l">Dois mercados</span></div>
+        <div class="num wide"><span class="num-n" id="cert-n">5138/2025</span><span class="num-l">Certificação DGERT</span></div>
+      </div>
+    </section>
+
+    <section class="lp-sec">
+      <h2 class="lp-h2">Ponham os vossos números.</h2>
+      <p class="lp-p">Este dinheiro está a ser gasto hoje, em horas de alguém da vossa equipa a preencher formulários. Ponham o volume real e vejam quanto é.</p>
+
+      <div class="cc">
+        <div class="cc-in">
+          <div class="cc-f">
+            <span class="cc-l">Ações de formação</span>
+            <div class="cc-row"><span class="cc-v" id="cc-a">50</span><span class="cc-u">por ano</span></div>
+            <input class="cc-s" type="range" min="4" max="120" step="2" value="50" oninput="calcular(this.value,null,null)">
+          </div>
+          <div class="cc-f">
+            <span class="cc-l">Formandos por ação de formação, em média</span>
+            <div class="cc-row"><span class="cc-v" id="cc-f">20</span><span class="cc-u">formandos</span></div>
+            <input class="cc-s" type="range" min="3" max="30" step="1" value="20" oninput="calcular(null,this.value,null)">
+          </div>
+          <div class="cc-f">
+            <span class="cc-l">Custo por hora de quem faz este trabalho</span>
+            <div class="cc-row"><span class="cc-v" id="cc-c">25</span><span class="cc-u">euros por hora, com encargos</span></div>
+            <input class="cc-s" type="range" min="8" max="45" step="1" value="25" oninput="calcular(null,null,this.value)">
+          </div>
+        </div>
+        <div class="cc-out">
+          <div class="cc-main">
+            <div class="cc-box">
+              <span class="cc-box-l">Podem poupar por ano</span>
+              <span class="cc-box-n" id="cc-eur">0 €</span>
+            </div>
+            <p class="cc-sub" id="cc-dias"></p>
+          </div>
+          <div class="cc-side"><div class="cc-brk">
+            <div><div class="cc-b-n" id="cc-h">0</div><div class="cc-b-l">horas por ano</div></div>
+            <div><div class="cc-b-n" id="cc-sem">0</div><div class="cc-b-l">horas por semana</div></div>
+            <div><div class="cc-b-n" id="cc-ff">0</div><div class="cc-b-l">formandos processados</div></div>
+            <div><div class="cc-b-n" id="cc-p">0</div><div class="cc-b-l">passos por ano</div></div>
+          </div></div>
+        </div>
+      </div>
+
+      <h2 class="lp-h2" style="margin-top:56px">Só pagam depois de funcionar.</h2>
+      <p class="lp-p">A forma mais honesta de dizer que vale a pena é não vos pedir que acreditem.</p>
+
+      <div class="gar">
+        <div class="gar-i">
+          <span class="gar-n">01</span>
+          <span class="gar-b"><span class="gar-t">O setup corre uma ação de formação real vossa</span>
+          <span class="gar-s">Não uma demonstração nem um caso de teste. Uma ação de formação vossa, de ponta a ponta, dos dados dos formandos até ao certificado emitido no SIGO.</span></span>
+        </div>
+        <div class="gar-i">
+          <span class="gar-n">02</span>
+          <span class="gar-b"><span class="gar-t">Só faturamos depois de estar concluída com sucesso</span>
+          <span class="gar-s">Se não funcionar na vossa realidade, com a vossa base de dados e os vossos processos, não pagam nada.</span></span>
+        </div>
+        <div class="gar-i">
+          <span class="gar-n">03</span>
+          <span class="gar-b"><span class="gar-t">Pagamento único, sem custo por formando</span>
+          <span class="gar-s">O que custa é a implementação, uma vez. Processar mais formandos ou abrir mais ações de formação não aumenta o que nos pagam. A manutenção mensal é opcional.</span></span>
+        </div>
+        <div class="gar-i">
+          <span class="gar-n">04</span>
+          <span class="gar-b"><span class="gar-t">Acompanhamento até correrem sozinhos</span>
+          <span class="gar-s">Setup presencial com a vossa equipa e 30 dias de acompanhamento incluídos. O objetivo é deixarem de precisar de nós para o dia a dia.</span></span>
+        </div>
+      </div>
+
+      </section>
+
+    <section class="lp-cta">
+      <h2 class="lp-h2">Falem connosco.</h2>
+      <p class="lp-p">30 minutos, sem compromisso, para percebermos como está organizada a vossa base de dados e se isto faz sentido para a vossa operação.</p>
+      <div class="lp-btns">
+        <a class="lp-b" href="mailto:people@thestarter.io?subject=Fluxo">Falar connosco</a>
+        <button class="lp-b sec" onclick="verLogin()">Já temos acesso</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="lp-foot"><div class="lp-foot-w">
+    <span>Fluxo · TheStarter</span>
+    <span>people@thestarter.io</span>
+  </div></div>
+</section>
+
+<section id="v-auth" class="auth hide"><div class="auth-box" id="auth-box"></div></section>
+
+<header class="hdr hide" id="hdr">
+  <div class="hl">
+    <button class="logo" onclick="go('board')">Fluxo<span class="tag-st hide" id="tag-st">TheStarter</span></button>
+    <nav class="nav">
+      <button id="nb" class="on" onclick="go('board')">Quadro</button>
+      <button id="nd" onclick="go('docs')">Documentação</button>
+      <button id="ne" class="hide" onclick="go('ents')">Entidades</button>
+    </nav>
+  </div>
+  <div class="hr">
+    <div class="sync" id="sync"><span class="sync-d"></span><span id="sync-t">Sincronizado há 4 min</span><button class="sretry hide" id="sretry" onclick="simSync()">repetir</button><span class="tip" id="tip">O quadro lê a base de dados a cada 15 minutos. A próxima leitura é daqui a 11 minutos.</span></div>
+    <span class="org" id="org"></span>
+    <button class="ico-b" aria-label="Notificações" title="Notificações" onclick="tog('ddn')">◔<span class="badge" id="nbadge"></span></button>
+    <button class="ico-b" style="padding:0" aria-label="Conta" title="Conta" onclick="tog('ddp')"><span class="ava" id="ava"></span></button>
+
+    <div class="dd wide hide" id="ddn">
+      <div class="dd-h"><span class="dd-h-t">Notificações</span><button class="dd-h-a" onclick="readAll()">Marcar lidas</button></div>
+      <div id="nlist"></div>
+    </div>
+
+    <div class="dd hide" id="ddp">
+      <div class="dd-u"><div class="dd-n" id="dd-nome"></div><div class="dd-e" id="dd-email"></div></div>
+      <button class="dd-i" onclick="goS('perfil')">Perfil</button>
+      <button class="dd-i" onclick="goS('equipa')">Equipa</button>
+      <button class="dd-i" onclick="goS('notif')">Notificações</button>
+      <button class="dd-i" onclick="goS('relat')">Relatório semanal</button>
+      <button class="dd-i" onclick="goS('dados')">Ligação de dados</button>
+      <div class="dd-sep"></div>
+      <button class="dd-i" onclick="toggleTheme()">Mudar tema</button>
+      <button class="dd-i" onclick="sair()">Terminar sessão</button>
+    </div>
+  </div>
+</header>
+
+<div class="wrap hide" id="wrap">
+
+<section id="v-board" class="page">
+  <div class="ph">
+    <div><h1>Ações de formação</h1><p class="sub" id="bsub"></p></div>
+    <div class="stats">
+      <button class="stat" onclick="qf('late')"><div class="stat-n" id="s1">0</div><div class="stat-l">atrasadas</div></button>
+      <button class="stat" onclick="qf('today')"><div class="stat-n" id="s2">0</div><div class="stat-l">hoje</div></button>
+      <button class="stat" onclick="qf('blocked')"><div class="stat-n" id="s3">0</div><div class="stat-l">bloqueadas</div></button>
+    </div>
+  </div>
+  <div class="vbar" id="vbar"></div>
+  <div class="srow"><input id="bq" class="bsearch" placeholder="Pesquisar ação por nome ou código..." oninput="renderBoard()"><button class="sclear hide" id="bqx" onclick="document.getElementById('bq').value='';renderBoard()">limpar</button></div>
+  <div class="vinfo" id="vinfo"></div>
+  <div class="board" id="board"></div>
+</section>
+
+<section id="v-docs" class="page hide">
+  <div class="ph"><div><h1>Documentação</h1><p class="sub"></p></div></div>
+  <div id="doc-list">
+    <div id="doc-aviso" class="hide"></div>
+    <input class="search" id="q" placeholder="Pesquisar nos documentos..." oninput="search()">
+    <p class="res-n" id="res-n"></p>
+    <div id="results"></div>
+  </div>
+  <div id="doc-read" class="hide"></div>
+</section>
+
+<section id="v-ents" class="page hide">
+  <div class="ph"><div><h1>Entidades</h1><p class="sub"></p></div></div>
+  <div id="ents-body"></div>
+</section>
+
+<section id="v-set" class="page hide">
+  <div class="ph"><div><h1>Definições</h1></div></div>
+  <div class="stabs" id="stabs"></div>
+  <div id="sbody"></div>
+</section>
+
+</div>
+
+<div class="foot hide" id="foot">Fluxo · Protótipo com dados fictícios</div>
+
+<nav class="bnav hide" id="bnav">
+  <button class="bn on" id="bn-board" onclick="go('board')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="4" width="5" height="16" rx="1"/><rect x="9.5" y="4" width="5" height="11" rx="1"/><rect x="16" y="4" width="5" height="16" rx="1"/></svg>
+    <span>Quadro</span></button>
+  <button class="bn" id="bn-docs" onclick="go('docs')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M9 13h6M9 17h4"/></svg>
+    <span>Documentos</span></button>
+  <button class="bn hide" id="bn-ents" onclick="go('ents')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18"/><path d="M5 21V6l7-3 7 3v15"/><path d="M9.5 10h1M13.5 10h1M9.5 14h1M13.5 14h1"/></svg>
+    <span>Entidades</span></button>
+  <button class="bn" id="bn-set" onclick="goS('perfil')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="8" r="3.4"/><path d="M4.8 20a7.4 7.4 0 0 1 14.4 0"/></svg>
+    <span>Perfil</span></button>
+</nav>
+<div class="ovl" id="ovl" onclick="if(event.target===this)closeM()"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- data ---------- */
+const FLOWS=['Recolha de dados','Perfis de formandos','Curso e módulos','Criação da ação','Inscrição e certificação','Conclusão'];
+const COLS=['Dados','Perfis','Curso','Ação','Certificação','Conclusão'];
+const ME='MC';
+
+const TEAM=[
+ {i:'MC',n:'Miguel Coelho',e:'miguel@escolanova.pt',r:'Administrador'},
+ {i:'AS',n:'Ana Sousa',e:'ana@escolanova.pt',r:'Gestor de formação'},
+ {i:'RP',n:'Rui Pereira',e:'rui@escolanova.pt',r:'Gestor de formação'},
+ {i:'CF',n:'Carla Freitas',e:'carla@escolanova.pt',r:'Só leitura'},
+];
+
+let ACOES=[
+ {id:20,nome:'Motion para Interfaces · Jun 2026',ini:'08 jun',fim:'02 jul',tipo:'Curso',cod:'MOT001',fmt:'PT',ano:2026,dias_sem:'2ª e 4ª',flow:0,estado:'futura',diasAteFim:106,total:0,logs:[]},
+ {id:21,nome:'Estratégia de Produto · Mai 2026',ini:'11 mai',fim:'04 jun',tipo:'Curso',cod:'EST002',fmt:'PT',ano:2026,dias_sem:'3ª e 5ª',flow:0,estado:'futura',diasAteFim:78,total:0,logs:[]},
+ {id:22,nome:'Design Tokens · Mai 2026',ini:'05 mai',fim:'28 mai',tipo:'Imersão',cod:'TOK001',fmt:'PT',ano:2026,dias_sem:'2ª e 4ª',flow:0,estado:'futura',diasAteFim:71,total:0,logs:[]},
+ {id:23,nome:'Investigação Qualitativa · Abr 2026',ini:'20 abr',fim:'14 mai',tipo:'Curso',cod:'QUA001',fmt:'PT',ano:2026,dias_sem:'3ª e 5ª',flow:0,estado:'futura',diasAteFim:57,total:0,logs:[]},
+ {id:1,nome:'UX Avançado · Março 2026',ini:'02 mar',fim:'28 mar',tipo:'Curso',pt:8,total:11,cod:'UXA002',fmt:'PT',ano:2026,dias_sem:'2ª e 4ª',flow:0,estado:'late',dias:2,diasAteFim:11,logs:['12 mar']},
+ {id:2,nome:'Design Systems · Abril 2026',ini:'06 abr',fim:'30 abr',tipo:'Imersão',pt:12,total:14,cod:'DSY001',fmt:'PT',ano:2026,dias_sem:'3ª e 5ª',flow:0,estado:'ok',dias:5,diasAteFim:14,logs:[]},
+ {id:3,nome:'AI para Produto · Abril 2026',ini:'13 abr',fim:'09 mai',tipo:'Curso',pt:6,total:9,cod:'AIP001',fmt:'PT',ano:2026,dias_sem:'2ª e 4ª',flow:0,estado:'ok',dias:11,diasAteFim:8,logs:[]},
+ {id:4,nome:'Data-Driven Design · Fev 2026',ini:'03 fev',fim:'27 fev',tipo:'Curso',pt:9,total:12,cod:'DDD003',fmt:'PT',ano:2026,dias_sem:'3ª e 5ª',flow:1,estado:'today',dias:0,logs:['28 jan']},
+ {id:5,nome:'UX Iniciantes · Fev 2026',ini:'05 fev',fim:'26 fev',tipo:'Curso Lite',pt:7,total:7,cod:'UXI010',fmt:'PT',ano:2026,dias_sem:'Sábados',flow:1,estado:'ok',dias:3,logs:['30 jan']},
+ {id:6,nome:'UI com Figma · Janeiro 2026',ini:'08 jan',fim:'30 jan',tipo:'Curso',pt:11,total:15,cod:'UIF004',fmt:'PT',ano:2026,dias_sem:'2ª e 4ª',flow:2,estado:'late',dias:5,logs:['04 jan','09 jan']},
+ {id:7,nome:'Métricas de Produto · Jan 2026',ini:'13 jan',fim:'05 fev',tipo:'Curso',pt:5,total:8,cod:'MET002',fmt:'PT',ano:2026,dias_sem:'3ª e 5ª',flow:2,estado:'ok',dias:8,logs:['08 jan','14 jan']},
+ {id:8,nome:'UX Intermédio · Dez 2025',ini:'02 dez',fim:'19 dez',tipo:'Curso',pt:10,total:13,cod:'UXM007',fmt:'PT',ano:2026,dias_sem:'2ª e 4ª',flow:3,estado:'today',dias:0,logs:['27 nov','03 dez','05 dez']},
+ {id:9,nome:'Research Aplicada · Dez 2025',ini:'25 nov',fim:'17 dez',tipo:'Imersão',pt:8,total:10,cod:'RES005',fmt:'PT',ano:2026,dias_sem:'3ª e 5ª',flow:3,estado:'ok',dias:2,logs:['20 nov','26 nov','28 nov']},
+ {id:10,nome:'Design de Facilitação · Nov 2025',ini:'04 nov',fim:'28 nov',tipo:'Curso',pt:9,total:11,cod:'FAC001',fmt:'PT',ano:2026,dias_sem:'2ª e 4ª',flow:4,estado:'blocked',bloqueio:'Falta tabela de avaliações',logs:['30 out','05 nov','07 nov','20 nov']},
+ {id:14,nome:'Arquitetura de Informação · Out 2025',ini:'21 out',fim:'13 nov',tipo:'Curso',pt:8,total:10,cod:'ARQ003',fmt:'PT',ano:2026,dias_sem:'3ª e 5ª',flow:5,estado:'error',erro:'Falha no upload de 3 de 8 PDFs',logs:['16 out','22 out','24 out','08 nov','21 nov']},
+ {id:11,nome:'Portfolio de UX · Nov 2025',ini:'03 nov',fim:'21 nov',tipo:'Curso',pt:7,total:9,cod:'POR002',fmt:'PT',ano:2026,dias_sem:'Sábados',flow:6,estado:'done',concl:3,logs:['28 out','04 nov','06 nov','18 nov','02 dez','04 dez']},
+ {id:15,nome:'Prototipagem Rápida · Set 2025',ini:'16 set',fim:'09 out',tipo:'Curso',pt:9,total:11,cod:'PRO004',fmt:'PT',ano:2026,dias_sem:'2ª e 4ª',flow:6,estado:'done',concl:2,logs:['11 set','17 set','19 set','02 out','15 out','17 out']},
+ {id:16,nome:'Acessibilidade · Ago 2025',ini:'19 ago',fim:'11 set',tipo:'Curso Lite',pt:5,total:7,cod:'ACE001',fmt:'PT',ano:2026,dias_sem:'3ª e 5ª',flow:6,estado:'done',concl:19,logs:['14 ago','20 ago','22 ago','05 set','18 set','20 set']},
+ {id:17,nome:'Design Ops · Jul 2025',ini:'08 jul',fim:'31 jul',tipo:'Imersão',pt:7,total:9,cod:'DOP001',fmt:'PT',ano:2026,dias_sem:'2ª e 4ª',flow:6,estado:'done',concl:63,logs:['03 jul','09 jul','11 jul','24 jul','06 ago','08 ago']},
+ {id:12,nome:'Liderança em Design · Out 2025',ini:'14 out',fim:'06 nov',tipo:'Curso',pt:6,total:8,cod:'LID001',fmt:'BR',ano:2026,dias_sem:'3ª e 5ª',flow:2,estado:'ok',dias:6,logs:['10 out','15 out']},
+ {id:13,nome:'Escrita para UX · Set 2025',ini:'09 set',fim:'02 out',tipo:'Curso Lite',pt:4,total:6,cod:'ESC001',fmt:'PT',ano:2025,dias_sem:'2ª e 4ª',flow:6,estado:'done',concl:41,logs:['04 set','10 set','12 set','25 set','08 out','10 out']},
+];
+
+let VIEWS=[
+ {id:'v1',nome:'Todas',fixa:true,cond:[]},
+ {id:'v2',nome:'A precisar de atenção',cond:[['estado','em','late,today,blocked,error']]},
+];
+let VIEW='v1', QF=null, VERTODAS=false, VERFUTURAS=false;
+
+let NOTIFS=[
+ {i:'AS',t:'<b>Ana Sousa</b> concluiu o Flow 1 em UI com Figma · Janeiro 2026',m:'há 2 horas',un:true},
+ {i:'!',t:'<b>Design de Facilitação</b> está bloqueada há 6 dias. Falta a tabela de avaliações.',m:'há 5 horas',un:true},
+ {i:'RP',t:'<b>Rui Pereira</b>: "Podes correr o Flow 3 desta?" — Research Aplicada · Dez 2025',m:'ontem',un:true},
+ {i:'◷',t:'<b>UX Avançado · Março 2026</b> passou o prazo do Flow 0',m:'há 2 dias',un:false},
+ {i:'AS',t:'<b>Ana Sousa</b> concluiu o Flow 2 em Métricas de Produto · Jan 2026',m:'há 3 dias',un:false},
+];
+
+let SET={
+ notif:{atrib:true,concl:false,prazo:true,bloq:true,falha:true},
+ canal:{email:true,app:true},
+ relat:{on:true,dia:'Segunda',hora:'09:00',emails:['miguel@escolanova.pt','ana@escolanova.pt','direcao@escolanova.pt']},
+ prazos:{0:3,1:1,2:1,3:21,4:7,5:3}, aviso:3, entrada:15,
+};
+
+/* ---------- helpers ---------- */
+const $=id=>document.getElementById(id);
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._);t._=setTimeout(()=>t.classList.remove('show'),2200);}
+function tog(id){['ddn','ddp'].forEach(d=>{if(d!==id)$(d).classList.add('hide')});$(id).classList.toggle('hide');}
+document.addEventListener('click',e=>{if(!e.target.closest('.hr'))['ddn','ddp'].forEach(d=>$(d).classList.add('hide'));});
+function esc(s){return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+function person(i){return TEAM.find(t=>t.i===i);}
+
+// estimativa de duração por flow, em minutos (min, max)
+function estimar(flow,n){
+  const f={
+    0:[3,10], 1:[3,10], 2:[3,10], 3:[3,10], 4:[5*n,7*n], 5:[3,7]
+  }[flow];
+  if(!f)return null;
+  return {min:f[0],max:f[1]};
+}
+function fmtDur(m){
+  if(m<60)return m+' min';
+  const h=Math.floor(m/60), r=m%60;
+  return r? `${h}h${String(r).padStart(2,'0')}` : `${h}h`;
+}
+function textoDur(flow,n){
+  const e=estimar(flow,n); if(!e)return null;
+  return e.min===e.max? fmtDur(e.min) : `${fmtDur(e.min)} a ${fmtDur(e.max)}`;
+}
+
+/* ---------- views / filters ---------- */
+function matches(a,cond){
+  return cond.every(([f,op,v])=>{
+    const val=String(a[f]);
+    if(op==='=')return val===v;
+    if(op==='≠')return val!==v;
+    if(op==='em')return v.split(',').includes(val);
+    return true;
+  });
+}
+function visiveis(){
+  const v=VIEWS.find(x=>x.id===VIEW);
+  let out=ACOES.filter(a=>matches(a,v.cond));
+  if(QF==='late')out=out.filter(a=>a.estado==='late'||a.estado==='error');
+  else if(QF)out=out.filter(a=>a.estado===QF);
+  const q=($('bq')?.value||'').trim().toLowerCase();
+  if(q)out=out.filter(a=>a.nome.toLowerCase().includes(q)||a.cod.toLowerCase().includes(q));
+  return out;
+}
+
+function renderViews(){
+  let h='';
+  VIEWS.forEach(v=>{
+    h+=`<button class="vtab ${VIEW===v.id?'on':''}" onclick="setView('${v.id}')">${v.nome}`;
+    if(!v.fixa&&VIEW===v.id)h+=`<span class="x" onclick="event.stopPropagation();delView('${v.id}')">×</span>`;
+    h+=`</button>`;
+  });
+  h+=`<button class="vadd" onclick="newView()">+ Nova vista</button>`;
+  $('vbar').innerHTML=h;
+
+  const v=VIEWS.find(x=>x.id===VIEW);
+  let i='';
+  if(v.cond.length){
+    i+=`<span>Condições:</span>`;
+    v.cond.forEach(c=>i+=`<span class="cond">${labelF(c[0])} ${c[1]} ${c[2]}</span>`);
+    if(!v.fixa)i+=`<button class="link" onclick="editView('${v.id}')">editar</button>`;
+  }else if(!QF){i='<span>Sem condições. Mostra todas as ações.</span>';}
+  if(QF){i+=`<span class="cond">Estado: ${QF}</span><button class="link" onclick="qf(null)">limpar</button>`;}
+  $('vinfo').innerHTML=i;
+}
+function labelF(f){return {ano:'Ano',fmt:'Formato',tipo:'Tipo',estado:'Estado',dias_sem:'Dias'}[f]||f;}
+function setView(id){VIEW=id;QF=null;renderAll();}
+function delView(id){
+  const v=VIEWS.find(x=>x.id===id);
+  $('modal').className='modal';
+  $('modal').innerHTML=`<div class="m-h"><div class="m-t">Apagar vista</div><button class="m-x" onclick="closeM()">×</button></div>
+   <div class="m-sec"><p class="confirm">A vista <b>${v.nome}</b> e as suas ${v.cond.length} condiç${v.cond.length===1?'ão':'ões'} serão removidas. Nenhuma ação é afetada.</p>
+   <p class="confirm" style="color:var(--muted)">Esta operação não pode ser desfeita.</p></div>
+   <div class="m-f"><button class="btn" onclick="delViewNow('${id}')">Apagar vista</button>
+   <button class="btn sec" style="margin-top:8px" onclick="closeM()">Cancelar</button></div>`;
+  showOvl();
+}
+function delViewNow(id){if(VIEWS.length<=1)return;VIEWS=VIEWS.filter(v=>v.id!==id);VIEW=VIEWS[0].id;closeM();renderAll();toast('Vista apagada');}
+function qf(k){QF=QF===k?null:k;renderAll();}
+
+const FIELDS={ano:['2026','2025'],fmt:['PT','BR'],tipo:['Curso','Curso Lite','Imersão'],estado:['ok','late','today','blocked','error','done'],dias_sem:['2ª e 4ª','3ª e 5ª','Sábados']};
+let DRAFT=[];
+
+function newView(){DRAFT=[['ano','=','2026']];viewModal('Nova vista','',null);}
+function editView(id){const v=VIEWS.find(x=>x.id===id);DRAFT=v.cond.map(c=>[...c]);viewModal('Editar vista',v.nome,id);}
+
+function viewModal(titulo,nome,id){
+  $('modal').className='modal';
+  $('modal').innerHTML=`
+   <div class="m-h"><div class="m-t">${titulo}</div><button class="m-x" onclick="closeM()">×</button></div>
+   <div class="m-sec">
+     <div class="fld"><label class="fld-l">Nome da vista</label><input id="vn" value="${nome}" placeholder="ex: Cursos de Lisboa"></div>
+     <label class="fld-l">Condições</label>
+     <div id="conds"></div>
+     <button class="link" style="margin-top:4px" onclick="addCond()">+ Adicionar condição</button>
+     <p class="fld-h">Uma ação aparece na vista se cumprir todas as condições. Sem condições, aparecem todas.</p>
+   </div>
+   <div class="m-f">
+     <button class="btn" onclick="saveView(${id?`'${id}'`:'null'})">${id?'Guardar alterações':'Criar vista'}</button>
+     ${id?'<button class="btn sec" style="margin-top:8px" onclick="closeM()">Cancelar</button>':''}
+   </div>`;
+  renderConds();showOvl();
+}
+function renderConds(){
+  let h='';
+  DRAFT.forEach((c,i)=>{
+    h+=`<div class="crow">
+      <select onchange="cc(${i},0,this.value)">${Object.keys(FIELDS).map(f=>`<option value="${f}" ${c[0]===f?'selected':''}>${labelF(f)}</option>`).join('')}</select>
+      <select style="max-width:66px" onchange="cc(${i},1,this.value)">${['=','≠'].map(o=>`<option ${c[1]===o?'selected':''}>${o}</option>`).join('')}</select>
+      <select onchange="cc(${i},2,this.value)">${FIELDS[c[0]].map(v=>`<option ${c[2]===v?'selected':''}>${v}</option>`).join('')}</select>
+      <button class="del" onclick="delCond(${i})">×</button></div>`;
+  });
+  if(!DRAFT.length)h='<p class="fld-h" style="margin:0 0 4px">Nenhuma condição. Vai mostrar todas as ações.</p>';
+  $('conds').innerHTML=h;
+}
+function cc(i,k,v){DRAFT[i][k]=v;if(k===0)DRAFT[i][2]=FIELDS[v][0];renderConds();}
+function addCond(){DRAFT.push(['tipo','=','Curso']);renderConds();}
+function delCond(i){DRAFT.splice(i,1);renderConds();}
+function saveView(id){
+  const n=$('vn').value.trim()||'Vista sem nome';
+  if(id){const v=VIEWS.find(x=>x.id===id);v.nome=n;v.cond=DRAFT;toast('Vista guardada');}
+  else{const nid='v'+Date.now();VIEWS.push({id:nid,nome:n,cond:DRAFT});VIEW=nid;toast('Vista criada');}
+  closeM();renderAll();
+}
+
+/* ---------- board ---------- */
+function renderBoard(){
+  const vis=visiveis(), all=ACOES.filter(a=>matches(a,VIEWS.find(x=>x.id===VIEW).cond));
+  const nLate=all.filter(a=>a.estado==='late'||a.estado==='error').length;
+  const nBlock=all.filter(a=>a.estado==='blocked').length;
+  $('s1').textContent=nLate;
+  $('s2').textContent=all.filter(a=>a.estado==='today').length;
+  $('s3').textContent=nBlock;
+  $('s1').classList.toggle('red',nLate>0);
+  $('s3').classList.toggle('red',nBlock>0);
+  ['s1','s2','s3'].forEach((s,i)=>{
+    const k=['late','today','blocked'][i];
+    $(s).parentElement.classList.toggle('act',QF===k);
+  });
+  const q=($('bq')?.value||'').trim();
+  $('bqx').classList.toggle('hide',!q);
+  if(q){ $('bsub').textContent=`${vis.length} resultado${vis.length===1?'':'s'} para "${q}"`; }
+  else{ $('bsub').textContent=''; }
+
+  let h='';
+  COLS.forEach((c,i)=>{
+    let items=vis.filter(a=>a.flow===i||(i===5&&a.flow===6));
+    let escondidas=0, futuras=0;
+    if(i===5&&!VERTODAS){
+      escondidas=items.filter(a=>a.estado==='done'&&a.concl>7).length;
+      items=items.filter(a=>!(a.estado==='done'&&a.concl>7));
+    }
+    if(i===0){
+      futuras=items.filter(a=>a.estado==='futura').length;
+      if(!VERFUTURAS)items=items.filter(a=>a.estado!=='futura');
+    }
+    const ordem=e=>e==='futura'?2:e==='done'?1:0;
+    items.sort((a,b)=>ordem(a.estado)-ordem(b.estado));
+    h+=`<div class="col"><div class="col-h"><span class="col-t">${c}</span><span class="col-n">${items.length}</span></div>`;
+    if(!items.length)h+=`<div class="empty">Vazio</div>`;
+    items.forEach(a=>{
+      const travada=a.estado==='late'||a.estado==='error';
+      const cls=travada?'stuck':a.estado==='today'?'urgent':a.estado==='blocked'?'blocked':a.estado==='done'?'done':a.estado==='futura'?'futura':'';
+      let d;
+      if(a.estado==='futura')d=`<div class="due">Entra daqui a ${a.diasAteFim-SET.entrada} dias</div>`;
+      else if(a.estado==='done')d=`<div class="due">Concluída há ${a.concl===1?'1 dia':a.concl+' dias'}</div>`;
+      else if(a.estado==='blocked')d=`<div class="due red">↯ ${a.bloqueio}</div>`;
+      else if(a.estado==='error')d=`<div class="due red">↯ ${a.erro}</div>`;
+      else if(a.estado==='late')d=`<div class="due red">Atrasado ${a.dias}d</div>`;
+      else if(a.estado==='today')d='<div class="due hot">Hoje</div>';
+      else d=`<div class="due">Em ${a.dias} dias</div>`;
+      h+=`<button class="card ${cls}" onclick="openM(${a.id})">
+        <div class="card-top"><span class="card-t">${a.nome}</span></div>
+        <div class="card-d">${a.ini} → ${a.fim}</div>
+        ${a.estado!=='done'&&a.estado!=='futura'?`<div class="tags"><span class="tag">${a.tipo}</span></div>`:''}
+        ${d}</button>`;
+    });
+    if(i===0&&futuras){
+      h+=VERFUTURAS
+        ? `<button class="more" onclick="event.stopPropagation();VERFUTURAS=false;renderBoard()">Esconder as ${futuras} futuras</button>`
+        : `<button class="more" onclick="event.stopPropagation();VERFUTURAS=true;renderBoard()">Ver ${futuras} futura${futuras>1?'s':''}</button>`;
+    }
+    if(i===5){
+      if(escondidas)h+=`<button class="more" onclick="event.stopPropagation();VERTODAS=true;renderBoard()">Ver ${escondidas} concluída${escondidas>1?'s':''} há mais de uma semana</button>`;
+      else if(VERTODAS)h+=`<button class="more" onclick="event.stopPropagation();VERTODAS=false;renderBoard()">Mostrar só as da última semana</button>`;
+    }
+    h+='</div>';
+  });
+  $('board').innerHTML=h;
+}
+
+/* ---------- card modal ---------- */
+function openM(id){
+  const a=ACOES.find(x=>x.id===id);
+  let steps='';
+  FLOWS.forEach((f,i)=>{
+    const done=i<a.flow, now=i===a.flow&&a.estado!=='done';
+    let m='';
+    if(done)m=a.logs[i]||'';
+    else if(now)m=a.estado==='blocked'?'Bloqueado':a.estado==='error'?'Erro':a.estado==='late'?`Atrasado ${a.dias}d`:a.estado==='today'?'Hoje':`Em ${a.dias} dias`;
+    const trav=now&&(a.estado==='late'||a.estado==='error'||a.estado==='blocked');
+    steps+=`<div class="step ${now?'now':done?'':'todo'}"><div class="dot ${done?'done':now?(trav?'now red':'now'):''}"></div><span class="step-t">Flow ${i} · ${f}</span><span class="step-m ${trav?'red':''}">${m}</span></div>`;
+  });
+  let act;
+  if(a.estado==='done')act='<button class="btn" disabled>Ação concluída</button>';
+  else if(a.estado==='blocked')act=`<div class="note"><span class="note-t">${a.bloqueio}</span><span class="note-s">Resolve no Airtable para desbloquear este flow.</span></div><button class="btn" disabled>Bloqueado</button>`;
+  else if(a.estado==='error'){
+    const seguro=a.flow===5
+      ? 'Repetir é seguro. Os certificados já foram emitidos no SIGO, o Flow 5 só trata dos PDFs e do Airtable. Voltar a correr não duplica nada.'
+      : 'Volta a correr depois de resolveres a causa. O registo de erro é atualizado, não duplicado.';
+    act=`<div class="note"><span class="note-t">${a.erro}</span><span class="note-s">${seguro}</span></div>
+     <button class="btn" onclick="copiar(${a.id})"><span id="ci">⧉</span><span id="ct">Copiar instrução do Flow ${a.flow}</span></button>
+     <p class="hint">Cola no Claude. O prompt completo está na documentação.</p>`;
+  }
+  else{
+    const dur=textoDur(a.flow,a.total);
+    const longo=a.flow===4&&a.total>=8;
+    act=`${longo?`<div class="note neutro"><span class="note-t2">Execução longa</span><span class="note-s">Com ${a.total} formandos, o Flow 4 demora cerca de ${dur}. É o único flow longo. Usa o computador designado e confirma que não adormece a meio.</span></div>`:''}
+    <button class="btn" onclick="copiar(${a.id})"><span id="ci">⧉</span><span id="ct">Copiar instrução do Flow ${a.flow}</span></button>
+    <p class="hint">Cola no Claude. O prompt completo está na documentação.</p>`;
+  }
+
+  $('modal').className='modal';
+  $('modal').innerHTML=`
+   <div class="m-h"><div><div class="m-t">${a.nome}</div><div class="m-s">${a.cod} · ${a.tipo}</div></div><button class="m-x" onclick="closeM()">×</button></div>
+   <div class="m-sec"><div class="m-lbl">Progresso</div>${steps}</div>
+   <div class="m-sec">
+     <table>
+       <tr><td>Datas</td><td>${a.ini} → ${a.fim}</td></tr>
+       <tr><td>Dias</td><td>${a.dias_sem}</td></tr>
+       <tr><td>Formandos</td><td>${a.total}</td></tr>
+       ${a.estado!=='done'&&textoDur(a.flow,a.total)?`<tr><td>Duração estimada</td><td>${textoDur(a.flow,a.total)}<span class="calc" title="Estimativa para o Flow ${a.flow} com ${a.total} formandos. Depende da resposta do SIGO.">Flow ${a.flow}</span></td></tr>`:''}
+       <tr><td>Formato</td><td>${a.fmt}</td></tr>
+     </table>
+     <button class="btn sec" style="margin-top:14px" onclick="notificar(${a.id})">Notificar</button>
+   </div>
+   <div class="m-f">${act}
+     ${(a.estado==='error'||a.estado==='blocked')?(podeReportar()
+        ? `<button class="btn sec" style="margin-top:8px" onclick="reportar(${a.id})">Reportar problema à TheStarter</button>`
+        : `<p class="hint" style="margin-top:14px">Reportar problemas exige plano de suporte mensal.<br>Fala connosco em suporte@thestarter.io.</p>`):''}
+     <div style="text-align:center;margin-top:12px"><a class="link" href="#" onclick="return false">Abrir na fonte de dados</a></div></div>`;
+  showOvl();
+}
+function showOvl(){$('ovl').classList.add('open');document.body.classList.add('locked');}
+function closeM(){$('ovl').classList.remove('open');document.body.classList.remove('locked');}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeM();});
+
+function copiar(id){
+  const a=ACOES.find(x=>x.id===id);
+  const t=aplicarVars(`Corre o Flow ${a.flow} (${FLOWS[a.flow]}) para a ação de formação "${a.nome}".\n\nCódigo do curso: ${a.cod}\nDatas: ${a.ini} a ${a.fim}\nFormandos PT: ${a.pt}\n\nSIGO: {{SIGO_URL}} · utilizador {{SIGO_UTILIZADOR}}\nBase de dados: {{CRM_TIPO}} · {{CRM_BASE}}\n\nSegue as instruções de flow-${a.flow}.md.`);
+  navigator.clipboard.writeText(t).then(()=>{
+    $('ci').textContent='✓';$('ct').textContent='Copiado';
+    setTimeout(()=>{const i=$('ci'),x=$('ct');if(i){i.textContent='⧉';x.textContent=`Copiar instrução do Flow ${a.flow}`;}},1800);
+  }).catch(()=>{$('ct').textContent='Falhou. Copia à mão.';});
+}
+
+function notificar(id){
+  const a=ACOES.find(x=>x.id===id);
+  $('modal').className='modal';
+  $('modal').innerHTML=`<div class="m-h"><div><div class="m-t">Notificar</div><div class="m-s">${a.nome}</div></div><button class="m-x" onclick="openM(${id})">×</button></div>
+   <div class="m-sec">
+     <div class="fld"><label class="fld-l">Para</label>
+       <select id="nto">${TEAM.filter(t=>t.i!==ME).map(t=>`<option value="${t.i}">${t.n} · ${t.e}</option>`).join('')}</select></div>
+     <div class="fld"><label class="fld-l">Mensagem</label>
+       <input id="nmsg" placeholder="Podes correr o Flow ${a.flow} desta ação?">
+       <p class="fld-h">Recebe notificação na app e por email, conforme as preferências dele.</p></div>
+   </div>
+   <div class="m-f"><button class="btn" onclick="enviarNot(${id})">Enviar notificação</button>
+   <button class="btn sec" style="margin-top:8px" onclick="openM(${id})">Cancelar</button></div>`;
+}
+function enviarNot(id){
+  const a=ACOES.find(x=>x.id===id), to=person($('nto').value);
+  const msg=$('nmsg').value.trim()||`Podes correr o Flow ${a.flow} desta ação?`;
+  NOTIFS.unshift({i:ME,t:`Enviaste a <b>${to.n}</b>: "${esc(msg)}" — ${a.nome}`,m:'agora',un:false});
+  renderNotifs();closeM();toast(`Notificação enviada a ${to.n}`);
+}
+
+function verDoc(flow){
+  closeM();go('docs');
+  const termos=['Flow 0','Flow 1','Flow 2','Flow 3','Flow 4','Flow 5'];
+  $('q').value=termos[flow];
+  searchByFile(flow);
+  $('q').scrollIntoView({behavior:'smooth',block:'center'});
+}
+function searchByFile(flow){
+  const alvo=DOCS.find(d=>d.f.startsWith('flow-'+flow+'-'));
+  if(!alvo){search();return;}
+  $('q').value=alvo.f;
+  $('res-n').textContent=`${alvo.l.length} secções em ${alvo.f}`;
+  $('results').innerHTML=alvo.l.map(([ln,t])=>`<div class="res"><div class="res-h"><span class="res-f">${alvo.f}</span><span class="res-l">linha ${ln}</span></div><div class="res-x">${esc(t)}</div></div>`).join('');
+}
+
+function reportar(id){
+  const a=ACOES.find(x=>x.id===id);
+  ANEXOS=[];
+  $('modal').className='modal';
+  $('modal').innerHTML=`<div class="m-h"><div><div class="m-t">Reportar problema</div><div class="m-s">${a.nome} · Flow ${a.flow}</div></div><button class="m-x" onclick="openM(${id})">×</button></div>
+   <div class="m-sec">
+     <p class="confirm">O SIGO muda sem aviso. Reportar aqui permite-nos atualizar a documentação e avisar as outras entidades antes de lhes acontecer o mesmo.</p>
+     <div class="fld" style="margin-top:16px"><label class="fld-l">Em que passo parou</label>
+       <textarea id="rp" rows="4" placeholder="ex: o campo Regime deixou de existir no formulário de criação da ação"></textarea></div>
+     <div class="fld">
+       <label class="fld-l">Capturas de ecrã</label>
+       <label class="drop" id="drop">
+         <input type="file" id="rfile" accept="image/png,image/jpeg,image/webp" multiple style="display:none" onchange="addAnexos(event)">
+         <span class="drop-t">Clica para escolher imagens</span>
+         <span class="drop-s">PNG, JPG ou WEBP · até 5 ficheiros · máx 5 MB cada</span>
+       </label>
+       <div id="anexos"></div>
+     </div>
+     <p class="fld-h">Tapa ou corta qualquer dado de formandos antes de enviar. Nomes, NIF e números de documento não devem sair da tua base.</p>
+   </div>
+   <div class="m-f"><button class="btn" onclick="enviarReporte(${id})">Enviar para a TheStarter</button>
+     <p class="hint">Vai para people@thestarter.io. Respondemos em dias úteis.</p>
+   <button class="btn sec" style="margin-top:8px" onclick="openM(${id})">Cancelar</button></div>`;
+  showOvl();
+}
+
+let ANEXOS=[];
+function addAnexos(ev){
+  const fs=[...(ev.target.files||[])];
+  for(const f of fs){
+    if(ANEXOS.length>=5){ toast('Máximo 5 ficheiros'); break; }
+    if(!/^image\//.test(f.type)){ toast(`${f.name} não é uma imagem`); continue; }
+    if(f.size>5*1024*1024){ toast(`${f.name} excede 5 MB`); continue; }
+    const r=new FileReader();
+    r.onload=()=>{ ANEXOS.push({nome:f.name,tam:f.size,url:r.result}); renderAnexos(); };
+    r.onerror=()=>toast(`Não foi possível ler ${f.name}`);
+    r.readAsDataURL(f);
+  }
+  ev.target.value='';
+}
+function removerAnexo(i){ ANEXOS.splice(i,1); renderAnexos(); }
+function renderAnexos(){
+  const el=$('anexos'); if(!el)return;
+  el.innerHTML=ANEXOS.map((a,i)=>`<div class="anexo">
+    <img src="${a.url}" alt="">
+    <span class="anexo-b"><span class="anexo-n">${esc(a.nome)}</span><span class="anexo-s">${(a.tam/1024).toFixed(0)} KB</span></span>
+    <button class="anexo-x" onclick="removerAnexo(${i})">×</button>
+  </div>`).join('');
+}
+function enviarReporte(id){
+  const a=ACOES.find(x=>x.id===id), d=($('rp').value||'').trim();
+  if(!d){toast('Descreve o que aconteceu');return;}
+  const n=ANEXOS.length;
+  NOTIFS.unshift({i:'!',t:`Reportaste um problema no <b>Flow ${a.flow}</b> — ${a.nome}${n?` · ${n} imagem${n>1?'ns':''}`:''}`,m:'agora',un:false});
+  ANEXOS=[];
+  renderNotifs();closeM();toast('Reportado. Vamos analisar e avisar-te.');
+}
+
+/* ---------- notifications ---------- */
+function renderNotifs(){
+  $('nlist').innerHTML=NOTIFS.slice(0,7).map(n=>`<div class="nt ${n.un?'un':''}">
+    <span class="ava sm ${n.i.length>2?'gh':''}">${n.i}</span>
+    <span class="nt-b"><span class="nt-t">${n.t}</span><span class="nt-m">${n.m}</span></span></div>`).join('');
+  $('nbadge').classList.toggle('hide',!NOTIFS.some(n=>n.un));
+}
+function readAll(){NOTIFS.forEach(n=>n.un=false);renderNotifs();toast('Notificações lidas');}
+
+/* ---------- settings ---------- */
+const STABS=[['perfil','Perfil'],['equipa','Equipa'],['notif','Notificações'],['relat','Relatório semanal'],['prazos','Prazos'],['vars','Credenciais'],['dados','Ligação de dados'],['priv','Privacidade']];
+let STAB='perfil';
+function goS(t){STAB=t;go('set');renderSet();['ddn','ddp'].forEach(d=>$(d).classList.add('hide'));}
+function renderSet(){
+  $('stabs').innerHTML=STABS.map(([k,l])=>`<button class="stab ${STAB===k?'on':''}" onclick="STAB='${k}';renderSet()">${l}</button>`).join('');
+  $('sbody').innerHTML={perfil:sPerfil,equipa:sEquipa,notif:sNotif,relat:sRelat,prazos:sPrazos,vars:sVars,dados:sDados,priv:sPriv}[STAB]();
+}
+function sPerfil(){return `
+ <div class="sblock"><h2>Perfil</h2><p class="sdesc">Os teus dados nesta conta.</p>
+  <div class="fld"><label class="fld-l">Nome</label><input value="Miguel Coelho"></div>
+  <div class="fld"><label class="fld-l">Email</label><input value="miguel@escolanova.pt"></div>
+  <div class="fld"><label class="fld-l">Entidade</label><input value="Escola Nova" disabled style="opacity:.55"><p class="fld-h">Só um administrador pode alterar o nome da entidade.</p></div>
+  <button class="btn sm" onclick="toast('Perfil guardado')">Guardar</button></div>`;}
+function sEquipa(){return `
+ <div class="sblock"><h2>Equipa</h2><p class="sdesc">Quem tem acesso ao quadro. Administradores podem convidar e remover pessoas.</p>
+  ${TEAM.map(t=>`<div class="lrow"><span class="ava sm">${t.i}</span>
+    <span class="lrow-b"><span class="lrow-t">${t.n}${t.i===ME?' <span style="color:var(--muted);font-weight:400">(tu)</span>':''}</span><span class="lrow-s">${t.e}</span></span>
+    <span class="pill ${t.r==='Administrador'?'fill':''}">${t.r}</span></div>`).join('')}
+  <div class="inline" style="margin-top:18px"><input placeholder="email@entidade.pt"><button class="btn sm" onclick="toast('Convite enviado')">Convidar</button></div>
+  <p class="fld-h">A pessoa recebe um email com o link de acesso.</p></div>`;}
+function sNotif(){
+  const items=[['atrib','Quando um colega me notifica'],['prazo','Quando uma ação passa o prazo'],['bloq','Quando uma ação fica bloqueada'],['concl','Quando alguém conclui um flow'],['falha','Quando a sincronização com o Airtable falha']];
+  return `<div class="sblock"><h2>Notificações</h2><p class="sdesc">O que te avisa, e por onde. Cada pessoa define as suas.</p>
+   ${items.map(([k,l])=>`<div class="lrow"><span class="lrow-b"><span class="lrow-t">${l}</span></span>
+     <button class="tog ${SET.notif[k]?'on':''}" onclick="SET.notif['${k}']=!SET.notif['${k}'];renderSet()"><i></i></button></div>`).join('')}
+   <h2 style="margin-top:32px">Canais</h2><p class="sdesc">Onde queres receber estes avisos.</p>
+   ${[['app','Dentro da aplicação'],['email','Por email']].map(([k,l])=>`<div class="lrow"><span class="lrow-b"><span class="lrow-t">${l}</span></span>
+     <button class="tog ${SET.canal[k]?'on':''}" onclick="SET.canal['${k}']=!SET.canal['${k}'];renderSet()"><i></i></button></div>`).join('')}
+   </div>`;}
+function sRelat(){return `
+ <div class="sblock"><h2>Relatório semanal</h2><p class="sdesc">Um email com o estado de todas as ações: atrasadas, para esta semana, bloqueadas e concluídas. Enviado para os endereços abaixo, mesmo que não tenham conta no Fluxo.</p>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Enviar relatório semanal</span><span class="lrow-s">${SET.relat.on?`${SET.relat.dia} às ${SET.relat.hora} · ${SET.relat.emails.length} destinatários`:'Desativado'}</span></span>
+   <button class="tog ${SET.relat.on?'on':''}" onclick="SET.relat.on=!SET.relat.on;renderSet()"><i></i></button></div>
+  <div style="display:flex;gap:10px;margin:18px 0 20px">
+    <div style="flex:1"><label class="fld-l">Dia</label><select onchange="SET.relat.dia=this.value;renderSet()">${['Segunda','Terça','Quarta','Quinta','Sexta','Domingo'].map(d=>`<option ${SET.relat.dia===d?'selected':''}>${d}</option>`).join('')}</select></div>
+    <div style="flex:1"><label class="fld-l">Hora</label><select onchange="SET.relat.hora=this.value;renderSet()">${['07:00','08:00','09:00','10:00','18:00'].map(h=>`<option ${SET.relat.hora===h?'selected':''}>${h}</option>`).join('')}</select></div>
+  </div>
+  <label class="fld-l">Destinatários</label>
+  <div class="emails">${SET.relat.emails.map((e,i)=>`<span class="etag">${e}<button class="x" onclick="rmEmail(${i})">×</button></span>`).join('')}</div>
+  <div class="inline"><input id="nemail" placeholder="email@entidade.pt" onkeydown="if(event.key==='Enter')addEmail()"><button class="btn sm" onclick="addEmail()">Adicionar</button></div>
+  <p class="fld-h">Podes adicionar qualquer email, incluindo direção ou contabilidade.</p>
+  <button class="btn sec sm" style="margin-top:20px" onclick="preview()">Ver pré-visualização</button></div>`;}
+function rmEmail(i){
+  const e=SET.relat.emails[i];
+  $('modal').className='modal';
+  $('modal').innerHTML=`<div class="m-h"><div class="m-t">Remover destinatário</div><button class="m-x" onclick="closeM()">×</button></div>
+   <div class="m-sec"><p class="confirm"><b>${e}</b> deixa de receber o relatório semanal.</p></div>
+   <div class="m-f"><button class="btn" onclick="SET.relat.emails.splice(${i},1);closeM();renderSet();toast('Destinatário removido')">Remover</button>
+   <button class="btn sec" style="margin-top:8px" onclick="closeM()">Cancelar</button></div>`;
+  showOvl();
+}
+function addEmail(){const v=$('nemail').value.trim();if(!v||!v.includes('@')){toast('Email inválido');return;}SET.relat.emails.push(v);renderSet();toast('Destinatário adicionado');}
+function preview(){
+  const late=ACOES.filter(a=>a.estado==='late'),today=ACOES.filter(a=>a.estado==='today'),bl=ACOES.filter(a=>a.estado==='blocked');
+  $('modal').className='modal lg';
+  $('modal').innerHTML=`<div class="m-h"><div><div class="m-t">Relatório semanal</div><div class="m-s">Pré-visualização do email</div></div><button class="m-x" onclick="closeM()">×</button></div>
+   <div class="m-sec" style="border-bottom:none">
+     <p style="font-size:13px;margin-bottom:6px"><b>Estado das ações de formação</b></p>
+     <p style="font-size:12px;color:var(--muted);margin-bottom:20px">Escola Nova · semana de 24 a 30 de março</p>
+     <p class="m-lbl">Atrasadas (${late.length})</p>
+     ${late.map(a=>`<p style="font-size:12px;margin-bottom:7px">${a.nome} — Flow ${a.flow}, atrasado ${a.dias} dias</p>`).join('')}
+     <p class="m-lbl" style="margin-top:22px">Bloqueadas (${bl.length})</p>
+     ${bl.map(a=>`<p style="font-size:12px;margin-bottom:7px">${a.nome} — ${a.bloqueio}</p>`).join('')}
+     <p class="m-lbl" style="margin-top:22px">Para esta semana (${today.length})</p>
+     ${today.map(a=>`<p style="font-size:12px;margin-bottom:7px">${a.nome} — Flow ${a.flow}</p>`).join('')}
+     <p style="font-size:11px;color:var(--muted);margin-top:26px;padding-top:16px;border-top:.5px solid var(--line)">Enviado por Fluxo · para deixares de receber, fala com o administrador da tua entidade.</p>
+   </div>`;
+  showOvl();
+}
+function sDados(){return `
+ <div class="sblock"><h2>Ligação de dados</h2><p class="sdesc">O quadro lê a tua base de dados em tempo real. Nada é copiado nem guardado do nosso lado.</p>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Fonte de dados</span><span class="lrow-s">Airtable · Base de formação · última leitura há 4 minutos</span></span><span class="pill fill">ativa</span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Ações de formação</span><span class="lrow-s">Leitura · 143 registos</span></span><span class="pill">ok</span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Registos de execução</span><span class="lrow-s">Leitura · 612 registos</span></span><span class="pill">ok</span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Formandos</span><span class="lrow-s">Sem acesso, por configuração da credencial</span></span><span class="pill">bloqueada</span></div>
+
+  <h2 style="margin-top:34px">Permissões da credencial</h2>
+  <p class="sdesc">Verificadas na última leitura. Se alguma linha mudar, a ligação está mal configurada e deve ser corrigida.</p>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Escrita</span><span class="lrow-s">O Fluxo nunca escreve na tua base</span></span><span class="pill">sem permissão</span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Acesso a formandos</span><span class="lrow-s">Testado a cada leitura. Tem de falhar.</span></span><span class="pill">falha, como esperado</span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Idade da credencial</span><span class="lrow-s">Emitida há 2 meses. Recomendamos renovar ao fim de 12.</span></span><span class="pill">ok</span></div>
+
+  <div class="row2" style="margin-top:20px">
+    <button class="btn sec sm" onclick="simSync()">Sincronizar agora</button>
+    <button class="btn sec sm" onclick="simFail()">Simular falha</button>
+  </div>
+  <p class="fld-h">A sincronização corre automaticamente a cada 15 minutos.</p>
+
+  <h2 style="margin-top:34px">Mudar de fonte</h2>
+  <p class="sdesc">O Fluxo lê a tua base através de um adaptador. Podes mudar de sistema sem perder vistas, prazos nem configuração.</p>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Airtable</span><span class="lrow-s">Em uso</span></span><span class="pill fill">ativa</span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Google Sheets</span><span class="lrow-s">Duas folhas: ações e registos de execução</span></span><span class="pill">disponível</span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Notion</span><span class="lrow-s">Duas bases de dados</span></span><span class="pill">disponível</span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Outro sistema</span><span class="lrow-s">Qualquer fonte que exponha os campos necessários. Fala connosco.</span></span><span class="pill">sob pedido</span></div>
+  <p class="fld-h">Mudar de fonte implica remapear os campos. Fazemos isso convosco.</p>
+  </div>`;}
+
+function sPrazos(){
+  const linhas=[[0,'Recolha de dados','antes do fim'],[1,'Perfis de formandos','antes do fim'],[2,'Curso e módulos','antes do fim'],[3,'Criação da ação','depois do fim'],[4,'Inscrição e certificação','depois do Flow 3'],[5,'Conclusão','depois do Flow 4']];
+  return `<div class="sblock">
+   <h2>Entrada no quadro</h2>
+   <p class="sdesc">Uma ação só aparece no quadro quando se aproxima da data de fim. Antes disso não há nada a fazer e ocuparia espaço. Podes sempre ver as futuras a partir do link no topo do quadro.</p>
+   <div class="lrow"><span class="lrow-b"><span class="lrow-t">Entra no quadro</span><span class="lrow-s">Antes da data de fim da ação</span></span>
+     <select style="width:110px" onchange="SET.entrada=+this.value;renderSet();renderBoard()">${[7,10,15,21,30,45].map(d=>`<option value="${d}" ${SET.entrada===d?'selected':''}>${d} dias antes</option>`).join('')}</select></div>
+   <p class="fld-h">Quinze dias é o valor recomendado. Dá folga para o Flow 0 perseguir dados em falta antes do prazo do Flow 1, que é um dia antes do fim.</p>
+
+   <h2 style="margin-top:34px">Prazos por flow</h2><p class="sdesc">Quando cada flow deve estar feito. Os valores por omissão seguem a documentação, mas cada entidade trabalha ao seu ritmo.</p>
+   ${linhas.map(([n,nome,ref])=>`<div class="lrow">
+     <span class="lrow-b"><span class="lrow-t">Flow ${n} · ${nome}</span><span class="lrow-s">${ref}</span></span>
+     <select style="width:92px" onchange="SET.prazos[${n}]=+this.value;renderSet()">${[1,2,3,5,7,14,21,30].map(d=>`<option value="${d}" ${SET.prazos[n]===d?'selected':''}>${d} dias</option>`).join('')}</select>
+   </div>`).join('')}
+   <h2 style="margin-top:32px">Antecedência do aviso</h2><p class="sdesc">Com quantos dias de antecedência um cartão começa a aparecer como próximo.</p>
+   <div class="lrow"><span class="lrow-b"><span class="lrow-t">Avisar antes do prazo</span></span>
+     <select style="width:92px" onchange="SET.aviso=+this.value;renderSet()">${[1,2,3,5,7].map(d=>`<option value="${d}" ${SET.aviso===d?'selected':''}>${d} dias</option>`).join('')}</select></div>
+   <button class="btn sm" style="margin-top:20px" onclick="toast('Prazos guardados')">Guardar</button></div>`;
+}
+
+function sPriv(){return `
+ <div class="sblock"><h2>Privacidade</h2><p class="sdesc">O que o Fluxo lê, o que guarda, e durante quanto tempo. Esta página existe para poderes responder a uma auditoria sem nos perguntar nada.</p>
+
+  <h2 style="margin-top:28px">O que lemos da tua base</h2>
+  <p class="sdesc">Em tempo real, a cada leitura. Nunca copiado para os nossos servidores.</p>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Ações de formação</span><span class="lrow-s">Nome, código do curso, datas, tipo, formato, dias, estado, ano</span></span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Contagens</span><span class="lrow-s">Número de formandos inscritos e se existe tabela de avaliações. Campos calculados na tua base, que devolvem apenas números.</span></span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Registos de execução</span><span class="lrow-s">Flow, estado, data e o resumo que os vossos flows escrevem, mostrado tal como está na vossa base</span></span></div>
+
+  <h2 style="margin-top:32px">O que nunca lemos</h2>
+  <p class="sdesc">Não é filtrado à chegada. Não é pedido.</p>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Tabela de formandos</span><span class="lrow-s">NIF, cartão de cidadão, morada, data de nascimento, nacionalidade</span></span><span class="pill">sem acesso</span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Anexos</span><span class="lrow-s">Certificados, contratos, tabelas de avaliação</span></span><span class="pill">sem acesso</span></div>
+
+  <h2 style="margin-top:32px">O que a TheStarter vê</h2>
+  <p class="sdesc">Nada do que está no vosso quadro.</p>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Ações e registos</span><span class="lrow-s">Nunca. Não existe forma de os consultarmos.</span></span><span class="pill">sem acesso</span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Contas e ligação</span><span class="lrow-s">Quem tem acesso, se a ligação está a funcionar, quando foi a última atividade</span></span><span class="pill">visível</span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Problemas reportados</span><span class="lrow-s">Apenas o que vocês escreverem e anexarem ao reportar</span></span><span class="pill">quando enviado</span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Palavra-passe do SIGO e token de escrita</span><span class="lrow-s">Nunca saem do vosso navegador. Não existem nos nossos servidores, nem cifrados.</span></span><span class="pill">nunca recebidos</span></div>
+
+  <h2 style="margin-top:32px">O que guardamos</h2>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Contas de utilizador</span><span class="lrow-s">Nome, email profissional, função · enquanto a conta existir</span></span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Vistas e preferências</span><span class="lrow-s">Configuração da equipa · enquanto a conta existir</span></span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Notificações</span><span class="lrow-s">Mensagens trocadas entre vocês · 12 meses</span></span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Registos de acesso</span><span class="lrow-s">Quem entrou e quando · 90 dias</span></span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Token de leitura da base de dados</span><span class="lrow-s">Só leitura, duas tabelas. Cifrado, nunca visível depois de guardado, nem para nós.</span></span></div>
+
+  <h2 style="margin-top:32px">Onde ficam</h2>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Alojamento</span><span class="lrow-s">Frankfurt, Alemanha · União Europeia</span></span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Base de dados</span><span class="lrow-s">Frankfurt, Alemanha · União Europeia</span></span></div>
+  <div class="lrow"><span class="lrow-b"><span class="lrow-t">Envio de email</span><span class="lrow-s">União Europeia</span></span></div>
+  <p class="fld-h">Sem transferências para fora do Espaço Económico Europeu.</p>
+
+  <h2 style="margin-top:32px">Se deixares de usar o Fluxo</h2>
+  <p class="sdesc">Não perdes nada. As ações, os registos e os formandos sempre estiveram na tua base. Apagamos as contas e a configuração ao fim de 30 dias, ou devolvemo-las se preferires.</p>
+
+  <div class="row2" style="margin-top:8px">
+    <button class="btn sec sm" onclick="toast('Contrato descarregado')">Contrato de subcontratação</button>
+    <button class="btn sec sm" onclick="toast('Lista de campos descarregada')">Lista de campos acedidos</button>
+  </div>
+ </div>`;}
+
+function simSync(){$('sync').classList.remove('err');$('sretry').classList.add('hide');$('sync-t').textContent='Sincronizado agora';
+  $('tip').textContent='O quadro lê a base de dados a cada 15 minutos. A próxima leitura é daqui a 15 minutos.';toast('Sincronizado');}
+function simFail(){$('sync').classList.add('err');$('sretry').classList.remove('hide');$('sync-t').textContent='Falha na sincronização';
+  $('tip').textContent='A última leitura com sucesso foi há 4 minutos. Novas tentativas a cada 15 minutos, ou repete agora.';
+  NOTIFS.unshift({i:'!',t:'<b>Falha na sincronização</b> com o Airtable. Os dados podem estar desatualizados.',m:'agora',un:true});
+  renderNotifs();toast('Falha simulada. Vê a notificação.');}
+
+/* ---------- docs ---------- */
+const DOCS=[
+ {f:'sigo-master-overview.md',body:`<h3>O que é isto</h3>
+<p>Um sistema de <b>6 flows</b> que trata de todo o ciclo SIGO das ações de formação, da recolha de dados dos formandos até à emissão dos certificados. Cada flow trata de um passo.</p>
+<p>O SIGO não tem API. Os Flows 1 a 5 usam automação de browser. O Flow 0 corre com as APIs de email e da base de dados.</p>
+<h3>Resumo dos flows</h3>
+<div class="tbl">
+<div class="tr"><b>Flow 0 · Dados</b><span>Recolhe dados pessoais dos formandos a partir de emails e contratos. Manual, antes do Flow 1.</span></div>
+<div class="tr"><b>Flow 1 · Perfis</b><span>Verifica se cada formando PT existe no SIGO e cria os que faltam. Um dia antes da data de fim.</span></div>
+<div class="tr"><b>Flow 2 · Curso</b><span>Verifica se o curso existe no SIGO e cria com todos os módulos se faltar. Em paralelo com o Flow 1.</span></div>
+<div class="tr"><b>Flow 3 · Criação</b><span>Cria a ação de formação, submete, associa o primeiro formando e põe em funcionamento. Três semanas depois do fim.</span></div>
+<div class="tr"><b>Flow 4 · Certificação</b><span>Inscreve todos os formandos PT, lança notas e emite certificados no SIGO. Manual.</span></div>
+<div class="tr"><b>Flow 5 · Conclusão</b><span>Descarrega os PDFs, carrega-os, atualiza os registos e conclui a ação. Manual.</span></div>
+</div>
+<h3>Cadeia de dependências</h3>
+<p>O Flow 0 tem de correr antes do Flow 1. Os Flows 1 e 2 podem correr em paralelo. O Flow 3 exige ambos concluídos. O Flow 4 exige o Flow 3. O Flow 5 exige o Flow 4.</p>
+<h3>Registos de execução</h3>
+<p>Uma entrada por ação e por flow, nunca por formando. Nunca apagar entradas anteriores. Estados possíveis: <code>Success</code>, <code>Missing Data</code> ou <code>Error</code>.</p>
+<p>Antes de criar um registo novo, verificar se já existe um para o mesmo flow e a mesma ação. Se o existente estiver em <code>Error</code> ou <code>Missing Data</code>, atualizar esse registo em vez de criar um duplicado. Se estiver em <code>Success</code>, criar um novo, porque é uma repetição legítima.</p>
+<h3>Regras comuns a todos os flows</h3>
+<ul>
+<li>Apenas formandos PT são processados. Formandos BR ou Outro são sempre ignorados.</li>
+<li>Nunca substituir dados existentes. Só preencher campos vazios.</li>
+<li>Datas: <code>AAAA/MM/DD</code> no SIGO, <code>YYYY-MM-DD</code> na base de dados.</li>
+<li>Nomes e moradas em Title Case, com preposições portuguesas em minúsculas: de, da, do, das, dos, e.</li>
+<li>Campos de lista: usar sempre o nome exato da opção. Nunca escrever texto livre.</li>
+<li>Sessão expirada no SIGO: detetar a página de login, voltar a entrar e continuar.</li>
+<li>Data de inscrição: sempre a data de início menos um dia.</li>
+<li>Condição Perante o Trabalho: sempre "Outra".</li>
+<li>Área de Formação: sempre <code>{{AREA_FORMACAO}}</code>.</li>
+<li>Regime: sempre <code>{{REGIME}}</code>.</li>
+<li>Validação do CC: um número válido tem exatamente 8 dígitos na primeira parte. Se tiver 9, cruzar com outra fonte antes de usar.</li>
+</ul>`,v:'v2.1',d:'há 3 dias',l:[
+  [12,'O sistema tem 6 flows, do 0 ao 5. O Flow 0 recolhe dados dos formandos a partir de emails e contratos. Os Flows 1 a 5 correm no SIGO através de automação de browser.'],
+  [47,'O Flow 1 e o Flow 2 podem correr em paralelo. O Flow 3 exige que ambos estejam concluídos com Success. O Flow 5 exige o Flow 4 concluído.'],
+  [203,'Regras comuns a todos os flows: a data de inscrição é sempre o início menos um dia, a Condição Perante o Trabalho é sempre "Outra", a Área de Formação é sempre 481 e o Regime é sempre Pós-Laboral.'],
+  [211,'Apenas formandos PT são processados. Formandos BR ou Outro são sempre ignorados em todos os flows.']]},
+ {f:'flow-0-recolha-dados.md',body:`<h3>Objetivo</h3>
+<p>Preencher os registos de formandos com os dados pessoais exigidos pelo SIGO: número de CC ou AR, data de nascimento, NIF, morada, código postal e nacionalidade.</p>
+<h3>Fontes de dados</h3>
+<ul>
+<li><b>Emails de resposta dos formandos</b>: data de nascimento, naturalidade, país de origem, informação do documento.</li>
+<li><b>Contratos em PDF</b>: NIF, morada, código postal, informação do documento.</li>
+</ul>
+<h3>Fluxo de trabalho em dois passos</h3>
+<p>Primeiro, pesquisar os emails e preencher tudo o que for possível, catalogando o que fica em falta. Depois, se ainda faltarem dados que só existem nos contratos, gerar uma instrução pronta a correr para leitura dos PDFs.</p>
+<h3>Regras</h3>
+<ul>
+<li>Só formandos PT. BR e Outro são ignorados.</li>
+<li>Formandos que já têm Nº SIGO levam na mesma verificação de validade do documento: últimos 4 dígitos do CC, número AR completo e data de validade.</li>
+<li>Este flow cataloga lacunas mas não persegue formandos. É o Flow 1 que determina se um dado em falta é mesmo bloqueante.</li>
+<li>Suporta modo em lote, várias ações numa só execução.</li>
+</ul>
+<p>Um número de Cartão de Cidadão válido tem exatamente 8 dígitos na primeira parte, ou 12 caracteres no formato completo. Se tiver 9 dígitos ou outra contagem, cruzar com a outra fonte. Se ambas concordarem no número errado, sinalizar e não usar.</p>
+<p><b>Registo de execução:</b> o estado é sempre <code>Success</code> se o flow correu. As lacunas ficam apenas catalogadas.</p>`,v:'v1.2',d:'há 2 semanas',l:[
+  [8,'O objetivo é preencher os registos de formandos com os dados exigidos pelo SIGO: número de CC ou AR, data de nascimento, NIF, morada e nacionalidade.'],
+  [34,'Um número de Cartão de Cidadão válido tem exatamente 8 dígitos na primeira parte. Se tiver 9 dígitos, cruzar com outra fonte antes de usar.']]},
+ {f:'flow-1-perfis-formandos.md',body:`<h3>Objetivo</h3>
+<p>Para cada formando PT da ação, verificar se já tem perfil no SIGO. Se não tiver, criar.</p>
+<h3>Regras</h3>
+<ul>
+<li>Se o formando já tem Nº SIGO registado, saltar por completo. Não voltar a pesquisar.</li>
+<li>Entrar em <code>{{SIGO_URL}}</code> com o utilizador <code>{{SIGO_UTILIZADOR}}</code> e a palavra-passe <code>{{SIGO_PALAVRA}}</code>. Pesquisar pelos primeiros 8 dígitos do CC, ou pelo número AR completo.</li>
+<li>Sem resultados, pesquisar por NIF. O NIF é o identificador mais estável: os números de CC podem estar errados no registo e os números AR mudam quando o documento é renovado.</li>
+<li>Se encontrar, guardar o Nº SIGO no registo do formando.</li>
+<li>Se não encontrar, criar o perfil com todos os dados disponíveis.</li>
+</ul>
+<h3>Campos obrigatórios na criação</h3>
+<p>Nome, número de CC ou AR, NIF, data de nascimento, validade do documento, morada, código postal, nacionalidade e sexo.</p>
+<h3>Detalhes de preenchimento</h3>
+<ul>
+<li>Número de CC: os primeiros 8 caracteres vão para o primeiro campo, o resto para o segundo.</li>
+<li>Código postal: separar pelo hífen, 4 dígitos e 3 dígitos. Introduzir o código postal antes da morada.</li>
+<li>"PT" corresponde a "Portugal" nas listas do SIGO.</li>
+</ul>
+<p><b>Registo de execução:</b> uma entrada por ação, ligada a todos os formandos PT. O estado reflete o pior resultado.</p>`,v:'v1.4',d:'há 1 semana',l:[
+  [15,'Se o formando já tem Nº SIGO registado, saltar por completo. Não voltar a pesquisar.'],
+  [29,'Entrar em <code>{{SIGO_URL}}</code> com o utilizador <code>{{SIGO_UTILIZADOR}}</code> e a palavra-passe <code>{{SIGO_PALAVRA}}</code>. Pesquisar pelos primeiros 8 dígitos do CC, ou pelo número AR completo. Sem resultados, pesquisar por NIF. O NIF é o identificador mais estável.']]},
+ {f:'flow-2-curso-modulos.md',body:`<h3>Objetivo</h3>
+<p>Garantir que o curso e todos os seus módulos existem no SIGO antes de criar a ação.</p>
+<h3>Regras</h3>
+<ul>
+<li>Verificar primeiro o campo Código Curso. Se estiver vazio, registar <code>Missing Data</code> e parar.</li>
+<li>Pesquisar nos Cursos do SIGO pelo Código Curso.</li>
+<li>Se o curso existir, verificar os Objetivos no separador Curso. Atualizar o SIGO se o conteúdo registado for diferente. Saltar se o registo estiver vazio.</li>
+<li>Se o curso não existir, criar com todos os módulos a partir do campo de informação de módulos.</li>
+</ul>
+<h3>Códigos de módulo</h3>
+<p>Retirar os números do prefixo do Código Curso e acrescentar <code>-01</code>, <code>-02</code> e assim por diante. Por exemplo, <code>CRD001</code> dá origem a <code>CRD-01</code>, <code>CRD-02</code>.</p>
+<h3>Definições fixas do curso</h3>
+<ul>
+<li>Área de Formação: sempre <code>{{AREA_FORMACAO}}</code>.</li>
+<li>Tipo de Avaliação: sempre "Sem Avaliação".</li>
+<li>Exige Nota Final: ativo.</li>
+<li>Escala: 0 a 20.</li>
+</ul>
+<p>Depois de criar, acrescentar os módulos ao Plano de Formação.</p>`,v:'v1.1',d:'há 1 mês',l:[
+  [10,'Verificar primeiro o campo Código Curso. Se estiver vazio, registar Missing Data e parar.'],
+  [52,'Códigos de módulo: retirar os números do prefixo do Código Curso e acrescentar -01, -02 e assim por diante.']]},
+ {f:'flow-3-criacao-acao.md',body:`<h3>Objetivo</h3>
+<p>Criar a ação de formação no SIGO, submeter, associar o primeiro formando PT e colocar em "Em Funcionamento".</p>
+<h3>Verificação obrigatória antes de criar</h3>
+<p>Verificar sempre se a ação já existe. Ir a Ações de Formação, pesquisar, ordenar por Data Início descendente e ver apenas a primeira página. Pesquisar pelo código do curso e pelas datas exatas.</p>
+<p>Se a ação existir, verificar o Estado e retomar a partir daí. Em funcionamento significa concluído. Submetida significa que falta associar o formando. Intenção significa que é preciso verificar o plano.</p>
+<h3>Regras</h3>
+<ul>
+<li>Escolha do curso: se existirem várias versões, escolher sempre a que termina em "1", nunca em "2".</li>
+<li>Regime: sempre <code>{{REGIME}}</code>.</li>
+<li>Primeiro formando: o primeiro formando PT na ordem dos campos que já tenha Nº SIGO.</li>
+<li>Data de inscrição: a data de início menos um dia.</li>
+<li>Condição Perante o Trabalho: sempre "Outra".</li>
+</ul>
+<h3>Sequência depois de criar</h3>
+<p>Verificar o Plano de Formação, submeter, associar o primeiro formando e mudar o estado para "Em Funcionamento".</p>`,v:'v2.0',d:'há 3 semanas',l:[
+  [21,'Antes de criar, verificar sempre se a ação já existe. Pesquisar por código do curso e datas exatas. Se existir, retomar a partir do estado atual.'],
+  [47,'Ao criar a inscrição, o campo Condição Perante o Trabalho é sempre preenchido com "Outra", independentemente da situação real do formando.']]},
+ {f:'flow-4-inscricao-certificacao.md',body:`<h3>Objetivo</h3>
+<p>Inscrever todos os formandos PT na ação, lançar as notas e emitir os certificados no SIGO. É todo o trabalho interativo no browser.</p>
+<h3>Pré-requisitos</h3>
+<p>Flows 0, 1, 2 e 3 concluídos. A tabela de avaliações tem de estar carregada antes de começar.</p>
+<h3>Regras</h3>
+<ul>
+<li>Ler as notas do ficheiro de avaliações. Nota inferior a 10 não gera certificado. Sinalizar antes de avançar.</li>
+<li>Formandos marcados como Recusado não recebem certificado. Se um formando Recusado já estiver inscrito na ação, por exemplo o primeiro formando do Flow 3, cancelar a inscrição em Gestão de Inscrições.</li>
+<li>O Nº Certificado é cumulativo entre ações. Um formando já ter um Nº Certificado não significa que está certificado para esta ação. Só saltar se existir um registo de execução do Flow 4 para esta ação em concreto.</li>
+</ul>
+<h3>Sequência por formando</h3>
+<p>Pesquisar pelo Nº SIGO, criar a inscrição com OFP e data igual ao início menos um dia, com Condição Perante o Trabalho definida como "Outra". Verificar ou atualizar os dados do formando apenas se o Nº Certificado estiver vazio, ou seja, só para quem é certificado pela primeira vez. Depois ligar à ação, selecionar os módulos, lançar a nota e certificar.</p>
+<h3>Casos que exigem intervenção manual</h3>
+<p>Mudanças de tipo de documento, de Passaporte para AR, de AR para CC, ou de AR antigo para AR novo, exigem tratamento manual. Se for detetada uma divergência entre o tipo de documento no SIGO e o registado, o formando é sinalizado e saltado.</p>
+<p>Verificação de duplicados: o primeiro formando do Flow 3 já está inscrito, saltar a inscrição para esse.</p>
+<p>Caixas de módulos: marcar cada caixa individual e também "Selecionar Tudo", tanto no Plano de Formação como na Certificação.</p>`,v:'v3.0',d:'há 12 min',l:[
+  [18,'Pré-requisito: Flows 0, 1, 2 e 3 concluídos. A tabela de avaliações tem de estar carregada antes de começar.'],
+  [63,'Nota inferior a 10 não gera certificado. Formandos marcados como Recusado também não.'],
+  [112,'Cada inscrição individual usa OFP, data igual ao início menos um dia, e Condição Perante o Trabalho definida como "Outra".'],
+  [140,'O Nº Certificado é cumulativo entre ações. Um formando já ter um Nº Certificado não significa que está certificado para esta ação.'],
+  [168,'Mudanças de tipo de documento (Passaporte para AR, AR para CC, AR antigo para AR novo) exigem tratamento manual. O formando é sinalizado e saltado.']]},
+ {f:'flow-5-conclusao.md',body:`<h3>Objetivo</h3>
+<p>Descarregar os certificados em PDF do SIGO, carregá-los para armazenamento, atualizar os registos com o Nº Certificado e os anexos, e concluir a ação. É todo o trabalho de API e upload.</p>
+<h3>Pré-requisitos</h3>
+<p>O Flow 4 tem de estar concluído com estado <code>Success</code>.</p>
+<h3>Porque está separado do Flow 4</h3>
+<p>Os dois flows falham por motivos completamente diferentes. O Flow 4 falha por problemas de browser no SIGO, como sessões expiradas ou erros de validação. O Flow 5 falha por problemas de API e de upload.</p>
+<p><b>Voltar a correr o Flow 5 depois de uma falha parcial é seguro</b>, porque todos os certificados já foram emitidos no SIGO. Nada é duplicado.</p>
+<h3>Regras</h3>
+<ul>
+<li>Ler a tabela de ações <code>{{TBL_ACOES}}</code> e a de registos <code>{{TBL_LOGS}}</code> na base <code>{{CRM_BASE}}</code>. Aceder aos links de certificado no separador de formandos da ação.</li>
+<li>Upload: obter o PDF do SIGO, enviar para o serviço de armazenamento, que devolve um URL público. Ler os anexos existentes antes de escrever e preservar sempre os certificados anteriores.</li>
+<li>Nº Certificado: acrescentar aos valores existentes com vírgula. Nunca substituir.</li>
+<li>Só concluir a ação se tudo estiver limpo: todos os flows com <code>Success</code>, todos os PDFs carregados e todos os registos atualizados.</li>
+</ul>
+<h3>Cuidado com a leitura de campos</h3>
+<p>Nunca usar seletores de campo ao ler campos de anexo ou de texto acumulado. Isso pode devolver valores vazios em campos que têm dados, causando perda de informação na escrita seguinte. Ler sempre o registo completo antes de escrever.</p>`,v:'v1.0',d:'há 12 min',l:[
+  [9,'Pré-requisito: o Flow 4 tem de estar concluído com estado Success. Todos os certificados já emitidos no SIGO.'],
+  [23,'Motivo da separação: o Flow 4 falha por problemas de browser no SIGO, o Flow 5 falha por problemas de API e upload. Voltar a correr o Flow 5 depois de uma falha parcial é seguro.'],
+  [58,'Upload do PDF: obter o ficheiro do SIGO, enviar para o Cloudflare Worker, que guarda no R2 e devolve o URL público. Ler os anexos existentes antes de escrever. Preservar sempre os certificados anteriores.'],
+  [94,'O Nº Certificado é acrescentado aos valores existentes com vírgula. Nunca substituir.'],
+  [110,'Só concluir a ação se tudo estiver limpo: todos os flows com Success, todos os PDFs carregados e todos os registos atualizados.']]},
+];
+/* ---- documentação: base + variações por entidade ---- */
+// A base é a documentação da TheStarter. Cada entidade herda-a e pode
+// ter variações em ficheiros específicos, quando o seu processo no SIGO difere.
+let DOC_SCOPE='base';
+let OVERRIDES={
+  2:{ 'flow-3-criacao-acao.md':{
+        v:'v2.0 · Formar Mais', baseV:'v2.0', d:'há 1 semana',
+        nota:'Criam as ações com regime Laboral, não Pós-Laboral.',
+        body:'<h3>Variação da Formar Mais</h3><p>Esta entidade cria as ações de formação em regime <b>Laboral</b>. O resto do processo segue a documentação base.</p><h3>Regras</h3><ul><li>Regime: sempre Laboral.</li><li>Condição Perante o Trabalho: sempre "Outra".</li><li>Data de inscrição: a data de início menos um dia.</li></ul>' } },
+  3:{ 'flow-4-inscricao-certificacao.md':{
+        v:'v2.1 · Instituto Aveiro', baseV:'v2.1', d:'há 2 meses',
+        nota:'Lançam notas numa escala de 0 a 5, não 0 a 20.',
+        body:'<h3>Variação do Instituto Aveiro</h3><p>As avaliações desta entidade estão numa escala de <b>0 a 5</b>. Converter para a escala do SIGO antes de lançar.</p><h3>Regras</h3><ul><li>Nota inferior a 2,5 não gera certificado.</li><li>Formandos marcados como Recusado também não.</li></ul>' } },
+};
+
+function entDocs(){
+  if(staff()) return DOC_SCOPE==='base' ? null : +DOC_SCOPE;
+  const e=minhaEnt(); return e ? e.id : null;
+}
+function docEfetivo(f, entId){
+  const base=DOCS.find(x=>x.f===f);
+  const ov = entId!=null && OVERRIDES[entId] && OVERRIDES[entId][f];
+  if(!ov) return base ? {...base, origem:'base'} : null;
+  return {...(base||{f}), body:ov.body, v:ov.v, d:ov.d, nota:ov.nota,
+          baseV:ov.baseV, origem:'variacao',
+          desatualizada: !!(base && ov.baseV!==base.v)};
+}
+function nVariacoes(entId){ return Object.keys(OVERRIDES[entId]||{}).length; }
+
+function renderDocs(){
+  $('doc-list').classList.remove('hide');
+  $('doc-read').classList.add('hide');
+  const st=staff();
+  const ent=entDocs();
+  let h='';
+
+  // barra de âmbito, só para a TheStarter
+  if(st){
+    const ents=ENTIDADES.filter(e=>e.ativa);
+    h+=`<div class="dscope">
+      <button class="dsc ${DOC_SCOPE==='base'?'on':''}" onclick="DOC_SCOPE='base';renderDocs()">Base<span class="dsc-n">${DOCS.length}</span></button>
+      ${ents.map(e=>{ const n=nVariacoes(e.id);
+        const velha=Object.keys(OVERRIDES[e.id]||{}).some(f=>docEfetivo(f,e.id).desatualizada);
+        return `<button class="dsc ${DOC_SCOPE==String(e.id)?'on':''}" onclick="DOC_SCOPE='${e.id}';renderDocs()">${e.nome}${n?`<span class="dsc-n ${velha?'red':''}">${n}</span>`:''}</button>`;
+      }).join('')}
+    </div>`;
+  }
+
+  if(st && ent===null){
+    // documentação base
+    h+=`<p class="dsc-desc">Documentação base. Todas as entidades a herdam, exceto nos ficheiros que tiverem variação própria.</p>`;
+    h+=DOCS.map((d,i)=>{
+      const quem=Object.keys(OVERRIDES).filter(id=>OVERRIDES[id][d.f]).map(id=>ENTIDADES.find(e=>e.id==id)).filter(Boolean);
+      return `<div class="drow">
+        <button class="dn" style="flex:1;text-align:left" onclick="abrirDoc('${d.f}')">${d.f}${d.rascunho?' <span class="pill" style="margin-left:6px">rascunho</span>':''}
+          ${quem.length?`<span class="dvar">${quem.length} entidade${quem.length>1?'s':''} com variação</span>`:''}</button>
+        <span class="dm">${d.v} · ${d.d}</span>
+        <button class="btn sec sm" onclick="editarDoc(${i})">Editar</button>
+        <button class="btn sec sm" style="border-color:var(--red-b);color:var(--red)" onclick="apagarDoc(${i})">Apagar</button>
+      </div>`;}).join('');
+    h+=`<button class="btn sec sm" style="margin-top:20px" onclick="editarDoc(-1)">Novo documento</button>`;
+  }
+  else if(st){
+    // vista de uma entidade
+    const e=ENTIDADES.find(x=>x.id===ent);
+    h+=`<p class="dsc-desc">O que a <b>${e.nome}</b> vê. Ficheiros sem variação usam a base e recebem as atualizações dela.</p>`;
+    h+=DOCS.map(b=>{
+      const d=docEfetivo(b.f,ent);
+      const varia=d.origem==='variacao';
+      return `<div class="drow ${varia?'dvrow':''}">
+        <button class="dn" style="flex:1;text-align:left" onclick="abrirDoc('${b.f}')">${b.f}
+          ${varia?`<span class="dvar on">variação</span>`:`<span class="dvar">base</span>`}
+          ${d.desatualizada?`<span class="dvar red">base mudou para ${b.v}</span>`:''}
+          ${varia&&d.nota?`<span class="dnota">${esc(d.nota)}</span>`:''}</button>
+        <span class="dm">${d.v}</span>
+        ${varia
+          ? `<button class="btn sec sm" onclick="editarVariacao(${ent},'${b.f}')">Editar</button>
+             <button class="btn sec sm" onclick="voltarBase(${ent},'${b.f}')">Voltar à base</button>`
+          : `<button class="btn sec sm" onclick="personalizar(${ent},'${b.f}')">Personalizar</button>`}
+      </div>`;}).join('');
+  }
+  else{
+    // entidade: vê a sua versão efetiva
+    h+=DOCS.map(b=>{
+      const d=docEfetivo(b.f,ent);
+      return `<div class="drow">
+        <button class="dn" style="flex:1;text-align:left" onclick="abrirDoc('${b.f}')">${b.f}
+          ${d.origem==='variacao'?`<span class="dvar on">adaptado à vossa entidade</span>`:''}</button>
+        <span class="dm">${d.v} · ${d.d}</span>
+        <button class="dm" style="opacity:.6" onclick="abrirDoc('${b.f}')">ler →</button>
+      </div>`;}).join('');
+  }
+
+  $('results').innerHTML=h;
+  $('res-n').textContent=`${DOCS.length} ficheiros`;
+
+  const av=$('doc-aviso');
+  if(av){
+    if(!st && !recebeAtualizacoes()){
+      av.classList.remove('hide');
+      av.innerHTML=`<div class="note neutro" style="max-width:640px;margin-bottom:18px">
+        <span class="note-t2">Documentação sem atualizações</span>
+        <span class="note-s">Sem plano de suporte mensal, esta documentação deixa de ser atualizada. Quando o SIGO muda, as instruções aqui podem deixar de corresponder ao que vês no ecrã. Fala connosco em suporte@thestarter.io.</span></div>`;
+    } else av.classList.add('hide');
+  }
+}
+
+function personalizar(ent,f){
+  const b=DOCS.find(x=>x.f===f);
+  if(!OVERRIDES[ent])OVERRIDES[ent]={};
+  OVERRIDES[ent][f]={body:b.body, v:`${b.v} · personalizado`, baseV:b.v, d:'agora', nota:''};
+  editarVariacao(ent,f);
+  toast('Cópia da base criada. Edita só o que difere.');
+}
+function editarVariacao(ent,f){
+  const ov=OVERRIDES[ent][f], e=ENTIDADES.find(x=>x.id===ent), b=DOCS.find(x=>x.f===f);
+  $('doc-list').classList.add('hide');
+  $('doc-read').classList.remove('hide');
+  $('doc-read').innerHTML=`<div class="reader" style="max-width:820px">
+    <button class="rback" onclick="renderDocs()">← ${e.nome}</button>
+    <div class="rhead"><div><div class="rname">${f}</div><div class="rmeta">Variação da ${e.nome} · baseada na ${ov.baseV}${b&&ov.baseV!==b.v?` · <span style="color:var(--red)">a base está na ${b.v}</span>`:''}</div></div></div>
+    <div class="fld"><label class="fld-l">O que difere da base</label>
+      <input id="vnota" value="${esc(ov.nota||'')}" placeholder="ex: lançam notas numa escala de 0 a 5">
+      <p class="fld-h">Uma linha. Aparece na lista e serve para lembrar porque é que esta entidade tem uma versão própria.</p></div>
+    <textarea class="ed" id="vbody">${(ov.body||'').replace(/</g,'&lt;')}</textarea>
+    <div class="row2" style="margin-top:14px">
+      <button class="btn" onclick="guardarVariacao(${ent},'${f}')">Guardar variação</button>
+    </div>
+    <p class="fld-h">Só a ${e.nome} vê esta versão. As atualizações da base deixam de lhe chegar para este ficheiro.</p>
+  </div>`;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function guardarVariacao(ent,f){
+  const ov=OVERRIDES[ent][f];
+  ov.body=$('vbody').value; ov.nota=$('vnota').value.trim(); ov.d='agora';
+  renderDocs(); toast('Variação guardada');
+}
+function voltarBase(ent,f){
+  const e=ENTIDADES.find(x=>x.id===ent);
+  $('modal').className='modal';
+  $('modal').innerHTML=`<div class="m-h"><div class="m-t">Voltar à base</div><button class="m-x" onclick="closeM()">×</button></div>
+   <div class="m-sec"><p class="confirm">A <b>${e.nome}</b> passa a usar a versão base de <b>${f}</b> e volta a receber as atualizações dela.</p>
+   <p class="confirm" style="color:var(--muted)">A variação é apagada e não pode ser recuperada.</p></div>
+   <div class="m-f"><button class="btn" onclick="delete OVERRIDES[${ent}]['${f}'];closeM();renderDocs();toast('A usar a base')">Apagar variação</button>
+   <button class="btn sec" style="margin-top:8px" onclick="closeM()">Cancelar</button></div>`;
+  showOvl();
+}
+
+/* ---- credenciais e variáveis da entidade ---- */
+// Cada entidade define os seus valores. Os documentos usam {{CHAVE}} e o Fluxo
+// substitui no momento em que a instrução é copiada. Nada é escrito no documento.
+let VARS=[
+ {k:'SIGO_URL',        r:'URL de login do SIGO',        v:'https://www.sigo.pt/Login.jsp', s:false, g:'SIGO'},
+ {k:'SIGO_UTILIZADOR', r:'Utilizador do SIGO',          v:'20114',                          s:false, g:'SIGO'},
+ {k:'SIGO_PALAVRA',    r:'Palavra-passe do SIGO',       v:'',                               s:true,  g:'SIGO', local:true},
+ {k:'CRM_TIPO',        r:'Sistema de dados',            v:'Airtable',                       s:false, g:'Base de dados'},
+ {k:'CRM_BASE',        r:'Identificador da base',       v:'appEXEMPLO7fK2Qa9',              s:false, g:'Base de dados'},
+ {k:'CRM_TOKEN',       r:'Token dos flows (leitura e escrita)', v:'',                       s:true,  g:'Base de dados', local:true},
+ {k:'TBL_ACOES',       r:'Tabela de ações de formação', v:'tblAcoesFormacao1',              s:false, g:'Base de dados'},
+ {k:'TBL_FORMANDOS',   r:'Tabela de formandos',         v:'tblFormandos00001',              s:false, g:'Base de dados'},
+ {k:'TBL_LOGS',        r:'Tabela de registos',          v:'tblRegistosExec01',              s:false, g:'Base de dados'},
+ {k:'AREA_FORMACAO',   r:'Área de formação',            v:'481',                            s:false, g:'Regras fixas'},
+ {k:'REGIME',          r:'Regime',                      v:'Pós-Laboral',                    s:false, g:'Regras fixas'},
+];
+let VERVARS=false;
+
+// Campos marcados com local:true nunca chegam ao servidor. Ficam só neste navegador.
+function carregarLocais(){
+  try{
+    const g=JSON.parse(localStorage.getItem('fluxo-local')||'{}');
+    VARS.forEach(v=>{ if(v.local && g[v.k]) v.v=g[v.k]; });
+  }catch(e){}
+}
+function guardarLocal(k,val){
+  const v=VARS.find(x=>x.k===k); if(v)v.v=val;
+  try{
+    const g=JSON.parse(localStorage.getItem('fluxo-local')||'{}');
+    if(val) g[k]=val; else delete g[k];
+    localStorage.setItem('fluxo-local',JSON.stringify(g));
+  }catch(e){}
+}
+function esquecerLocais(){
+  try{ localStorage.removeItem('fluxo-local'); }catch(e){}
+  VARS.forEach(v=>{ if(v.local) v.v=''; });
+  renderSet(); toast('Apagadas deste navegador');
+}
+
+function valorVar(k){ const x=VARS.find(v=>v.k===k); return x?x.v:null; }
+function faltamVars(){ return VARS.filter(v=>!v.v||v.v.trim()==='').map(v=>v.k); }
+
+// substitui {{CHAVE}} pelo valor da entidade
+function aplicarVars(txt){
+  return String(txt).replace(/\{\{\s*([A-Z0-9_]+)\s*\}\}/g, (m,k)=>{
+    const v=valorVar(k);
+    return v===null ? m : v;
+  });
+}
+// versão para leitura no ecrã: mostra a chave, não o segredo
+function marcarVars(txt){
+  return String(txt).replace(/\{\{\s*([A-Z0-9_]+)\s*\}\}/g, (m,k)=>{
+    const x=VARS.find(v=>v.k===k);
+    if(!x) return `<span class="vtag falta">${k}</span>`;
+    if(VERVARS && !x.s) return `<span class="vtag">${esc(x.v)}</span>`;
+    return `<span class="vtag${x.s?' seg':''}">${k}</span>`;
+  });
+}
+
+function sVars(){
+  const grupos=[...new Set(VARS.map(v=>v.g))];
+  const faltam=faltamVars();
+  return `<div class="sblock"><h2>Credenciais e variáveis</h2>
+   <p class="sdesc">Os documentos dos flows não têm valores fixos. Trazem marcadores como <code>{{SIGO_UTILIZADOR}}</code>, e o Fluxo substitui-os por estes valores no momento em que copias uma instrução. Assim o mesmo documento serve todas as entidades.</p>
+   ${faltam.length?`<div class="note"><span class="note-t">${faltam.length} valor${faltam.length>1?'es':''} por preencher</span><span class="note-s">As instruções que os usam vão sair incompletas até estarem definidos.</span></div>`:''}
+   ${grupos.map(g=>`
+     <h2 style="margin-top:30px">${g}</h2>
+     ${VARS.map((v,i)=>v.g!==g?'':`<div class="lrow">
+       <span class="lrow-b"><span class="lrow-t">${v.r}${v.local?' <span class="pill" style="margin-left:7px">só neste navegador</span>':''}</span>
+       <span class="lrow-s"><code>{{${v.k}}}</code>${v.local?' · nunca é enviada para os nossos servidores':''}</span></span>
+       <input value="${v.s&&!v.local?'':esc(v.v)}" type="${v.s?'password':'text'}" placeholder="${v.s?'••••••••':'por preencher'}" style="max-width:230px"
+         oninput="${v.local?`guardarLocal('${v.k}',this.value)`:`VARS[${i}].v=this.value`}">
+     </div>`).join('')}
+   `).join('')}
+
+   <div class="note neutro" style="margin-top:26px"><span class="note-t2">Onde ficam estes valores</span>
+   <span class="note-s">A maioria fica cifrada nos nossos servidores, porque o quadro precisa deles para ler a tua base de dados.<br><br>
+   A <b>palavra-passe do SIGO</b> e o <b>token dos flows</b> são a exceção. Ficam apenas neste navegador e nunca chegam aos nossos servidores: só são usados no momento em que copias um documento, e isso acontece no teu computador. Se mudares de computador ou limpares o navegador, tens de os introduzir outra vez.<br><br>
+   O token dos flows tem permissão de escrita, porque os flows gravam na base de dados. O Fluxo usa um token diferente, só de leitura, que configuras em Ligação de dados. <b>São dois tokens distintos.</b></span></div>
+
+   <div class="row2" style="margin-top:14px">
+     <button class="btn sec sm" onclick="esquecerLocais()">Apagar deste navegador</button>
+   </div>
+
+   <div class="row2" style="margin-top:18px">
+     <button class="btn sec sm" onclick="toast('Credenciais guardadas')">Guardar</button>
+     <button class="btn sec sm" onclick="testarVars()">Testar ligação</button>
+   </div>
+   <p class="fld-h">Recomendamos renovar o token de acesso à base de dados uma vez por ano, e a palavra-passe do SIGO sempre que alguém sai da equipa.</p>
+   </div>`;
+}
+function testarVars(){
+  const f=faltamVars();
+  toast(f.length? `${f.length} valor${f.length>1?'es':''} por preencher` : 'Ligação ao SIGO e à base de dados confirmada');
+}
+
+/* ---- editor (staff) ---- */
+function editarDoc(i){
+  const novo=i===-1;
+  const d=novo?{f:'',v:'v1.0',body:''}:DOCS[i];
+  $('doc-list').classList.add('hide');
+  $('doc-read').classList.remove('hide');
+  $('doc-read').innerHTML=`<div class="reader" style="max-width:820px">
+    <button class="rback" onclick="renderDocs()">← Todos os documentos</button>
+    <div class="toolbar">
+      <input id="df" value="${d.f}" placeholder="flow-6-novo.md" style="max-width:290px">
+      <input id="dv" value="${d.v}" placeholder="v1.0" style="max-width:88px">
+      <label class="btn sec sm" style="cursor:pointer">Carregar .md
+        <input type="file" id="dup" accept=".md,.markdown,text/markdown,text/plain" style="display:none" onchange="carregarMd(event)">
+      </label>
+    </div>
+    <p class="fld-h" style="margin:0 0 10px">Carregar um ficheiro preenche o nome e o conteúdo. O markdown é convertido para o HTML que o leitor mostra.</p>
+    <textarea class="ed" id="dbody" placeholder="HTML simples: h3, p, ul, li, b, code">${(d.body||'').replace(/</g,'&lt;')}</textarea>
+    <div class="row2" style="margin-top:14px">
+      <button class="btn sec" onclick="guardarDoc(${i},false)">Guardar rascunho</button>
+      <button class="btn" onclick="confirmarPublicar(${i})">Publicar a todas</button>
+    </div>
+    <p class="fld-h">Guardar rascunho não envia nada. Só tu vês. Publicar substitui a versão que as entidades leem.</p>
+  </div>`;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function carregarMd(ev){
+  const f=ev.target.files&&ev.target.files[0];
+  if(!f)return;
+  if(f.size>512*1024){toast('Ficheiro demasiado grande (máx 512 KB)');return;}
+  const r=new FileReader();
+  r.onload=()=>{
+    const nome=$('df'); if(nome&&!nome.value.trim())nome.value=f.name;
+    const corpo=$('dbody'); if(corpo)corpo.value=mdParaHtml(String(r.result));
+    toast(`${f.name} carregado`);
+  };
+  r.onerror=()=>toast('Não foi possível ler o ficheiro');
+  r.readAsText(f,'UTF-8');
+  ev.target.value='';
+}
+
+// conversão simples de markdown para o subconjunto de HTML que o leitor suporta
+function mdParaHtml(md){
+  const esc=t=>t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const inline=t=>esc(t)
+    .replace(/\*\*([^*]+)\*\*/g,'<b>$1</b>')
+    .replace(/(^|[^*])\*([^*]+)\*/g,'$1<i>$2</i>')
+    .replace(/`([^`]+)`/g,'<code>$1</code>')
+    .replace(/\[([^\]]+)\]\(([^)]+)\)/g,'<a href="$2">$1</a>');
+  const out=[]; let lista=false, tabela=false;
+  const fechaLista=()=>{ if(lista){out.push('</ul>');lista=false;} };
+  const fechaTabela=()=>{ if(tabela){out.push('</div>');tabela=false;} };
+  for(let linha of md.replace(/\r/g,'').split('\n')){
+    const t=linha.trim();
+    if(!t){ fechaLista(); fechaTabela(); continue; }
+    if(/^\|?\s*[-: ]+\|[-| :]*$/.test(t)){ continue; }               // separador de tabela
+    if(t.startsWith('|')){
+      const cels=t.split('|').slice(1,-1).map(c=>c.trim());
+      if(!tabela){ out.push('<div class="tbl">'); tabela=true; }
+      out.push(`<div class="tr"><b>${inline(cels[0]||'')}</b><span>${cels.slice(1).map(inline).join(' · ')}</span></div>`);
+      continue;
+    }
+    fechaTabela();
+    const h=t.match(/^(#{1,6})\s+(.*)$/);
+    if(h){ fechaLista(); out.push(`<h3>${inline(h[2])}</h3>`); continue; }
+    if(/^[-*+]\s+/.test(t)){
+      if(!lista){ out.push('<ul>'); lista=true; }
+      out.push(`<li>${inline(t.replace(/^[-*+]\s+/,''))}</li>`);
+      continue;
+    }
+    if(/^>\s?/.test(t)){ fechaLista(); out.push(`<p><i>${inline(t.replace(/^>\s?/,''))}</i></p>`); continue; }
+    if(/^(-{3,}|_{3,})$/.test(t)){ fechaLista(); continue; }
+    fechaLista();
+    out.push(`<p>${inline(t)}</p>`);
+  }
+  fechaLista(); fechaTabela();
+  return out.join('\n');
+}
+
+function lerEditor(){
+  return {f:$('df').value.trim(), v:$('dv').value.trim()||'v1.0', body:$('dbody').value};
+}
+function guardarDoc(i,publicar){
+  const e=lerEditor();
+  if(!e.f){toast('Falta o nome do ficheiro');return;}
+  const reg={...e,d:'agora',rascunho:!publicar,l:[]};
+  if(i===-1)DOCS.push(reg); else DOCS[i]={...DOCS[i],...reg};
+  renderDocs();
+  toast(publicar?'Publicado e notificado':'Rascunho guardado');
+}
+function confirmarPublicar(i){
+  const e=lerEditor();
+  if(!e.f){toast('Falta o nome do ficheiro');return;}
+  const alvo=ENTIDADES.filter(x=>x.ativa&&(x.suporte||x.dias<=30));
+  const n=alvo.length;
+  const fora=ENTIDADES.filter(x=>x.ativa&&!(x.suporte||x.dias<=30)).length;
+  $('modal').className='modal';
+  $('modal').innerHTML=`<div class="m-h"><div class="m-t">Publicar ${e.f}</div><button class="m-x" onclick="closeM()">×</button></div>
+   <div class="m-sec">
+     <p class="confirm">Substitui a versão que <b>${n} entidade${n===1?'':'s'}</b> leem neste momento e notifica os utilizadores delas.</p>
+     ${fora?`<p class="confirm" style="color:var(--muted)">${fora} entidade${fora===1?'':'s'} sem plano de suporte não recebe${fora===1?'':'m'} esta atualização. Continua${fora===1?'':'m'} com a versão que tinha${fora===1?'':'m'}.</p>`:''}
+     <div class="fld" style="margin-top:16px"><label class="fld-l">O que mudou</label><input id="dnota" placeholder="ex: o campo Regime mudou de sítio no SIGO"></div>
+     <p class="fld-h">Aparece na notificação. Diz porque vale a pena reler, não só que mudou.</p>
+   </div>
+   <div class="m-f"><button class="btn" onclick="publicarJa(${i})">Publicar a ${n} entidade${n===1?'':'s'}</button>
+   <button class="btn sec" style="margin-top:8px" onclick="closeM()">Cancelar</button></div>`;
+  showOvl();
+}
+function publicarJa(i){
+  const nota=$('dnota').value.trim(), f=$('df')?$('df').value.trim():'';
+  closeM(); guardarDoc(i,true);
+  NOTIFS.unshift({i:'↑',t:`Publicaste <b>${f}</b>${nota?` — ${esc(nota)}`:''}`,m:'agora',un:false});
+  renderNotifs();
+}
+function apagarDoc(i){
+  const d=DOCS[i];
+  $('modal').className='modal';
+  $('modal').innerHTML=`<div class="m-h"><div class="m-t">Apagar documento</div><button class="m-x" onclick="closeM()">×</button></div>
+   <div class="m-sec"><p class="confirm"><b>${d.f}</b> deixa de estar disponível para todas as entidades, incluindo quem estiver a meio de um flow.</p>
+   <p class="confirm" style="color:var(--muted)">Não pode ser desfeito.</p></div>
+   <div class="m-f"><button class="btn" onclick="DOCS.splice(${i},1);closeM();renderDocs();toast('Documento apagado')">Apagar</button>
+   <button class="btn sec" style="margin-top:8px" onclick="closeM()">Cancelar</button></div>`;
+  showOvl();
+}
+function abrirDoc(f){
+  const d=docEfetivo(f, entDocs());
+  $('doc-list').classList.add('hide');
+  $('doc-read').classList.remove('hide');
+  $('doc-read').innerHTML=`<div class="reader">
+    <button class="rback" onclick="renderDocs()">← Todos os documentos</button>
+    <div class="rhead">
+      <div><div class="rname">${d.f}</div><div class="rmeta">${d.v} · atualizado ${d.d}${d.origem==='variacao'?' · adaptado à entidade':''}</div></div>
+      <button class="btn sec sm" onclick="copyDoc('${d.f}')">Copiar conteúdo</button>
+    </div>
+    <div class="vbar2">
+      <span class="vbar2-t">Este documento usa valores da tua entidade. Ao copiar, são substituídos pelos teus.</span>
+      <button class="btn sec sm" onclick="VERVARS=!VERVARS;abrirDoc('${d.f}')">${VERVARS?'Esconder valores':'Ver os meus valores'}</button>
+    </div>
+    <div class="md">${marcarVars(d.body||'<p>Sem conteúdo disponível.</p>')}</div>
+  </div>`;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+function copyDoc(f){
+  const d=docEfetivo(f, entDocs());
+  const txt=aplicarVars((d.body||'').replace(/<[^>]+>/g,m=>m.startsWith('</')?'\n':'')).replace(/\n{3,}/g,'\n\n').trim();
+  const falta=faltamVars();
+  navigator.clipboard.writeText(txt)
+    .then(()=>toast(falta.length?`${f} copiado · ${falta.length} valor${falta.length>1?'es':''} por preencher`:`${f} copiado com os teus valores`))
+    .catch(()=>toast('Falhou'));
+}
+function search(){
+  const q=$('q').value.trim();
+  if(q.length<2){renderDocs();return;}
+  const rx=new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','gi');
+  let o='',n=0,fs=new Set();
+  DOCS.forEach(d=>d.l.forEach(([ln,t])=>{
+    if(t.toLowerCase().includes(q.toLowerCase())){n++;fs.add(d.f);
+      o+=`<button class="res" style="width:100%;text-align:left" onclick="abrirDoc('${d.f}')"><div class="res-h"><span class="res-f">${d.f}</span><span class="res-l">linha ${ln}</span></div><div class="res-x">${esc(t).replace(rx,'<mark>$1</mark>')}</div></button>`;}
+  }));
+  $('res-n').textContent=n?`${n} resultado${n>1?'s':''} em ${fs.size} ficheiro${fs.size>1?'s':''}`:'Sem resultados';
+  $('results').innerHTML=o;
+}
+
+
+
+/* ================= LOGIN ================= */
+let SESSAO=null, ECRA='login';
+
+const CONTAS={
+  'miguel@thestarter.io':{nome:'Miguel Coelho',papel:'staff',entidade:'TheStarter'},
+  'ana@escolanova.pt':{nome:'Ana Sousa',papel:'cliente',entidade:'Escola Nova'},
+};
+
+function renderAuth(){
+  const b=$('auth-box');
+  if(ECRA==='login'){
+    b.innerHTML=`<div class="auth-logo">Fluxo</div>
+     <div class="auth-t">Entrar</div>
+     <p class="auth-s">Usa o email da tua entidade formadora.</p>
+     <div class="fld"><label class="fld-l">Email</label><input id="ae" type="email" placeholder="nome@entidade.pt" onkeydown="if(event.key==='Enter')entrar()"></div>
+     <div class="fld"><label class="fld-l">Palavra-passe</label><input id="ap" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')entrar()"></div>
+     <div id="aerr"></div>
+     <button class="btn" style="margin-top:6px" onclick="entrar()">Entrar</button>
+     <p class="auth-foot"><button onclick="ECRA='recuperar';renderAuth()">Esqueci-me da palavra-passe</button> · <button onclick="verLanding()">O que é o Fluxo</button></p>
+     <div class="auth-note">O Fluxo não tem registo. As contas são criadas pela TheStarter. Se a tua entidade subscreveu e ainda não tens acesso, fala com quem administra a conta.</div>
+     <div class="demo">
+       <button onclick="demo('ana@escolanova.pt')">Entrar como entidade</button>
+       <button onclick="demo('miguel@thestarter.io')">Entrar como TheStarter</button>
+     </div>`;
+  }
+  else if(ECRA==='recuperar'){
+    b.innerHTML=`<div class="auth-logo">Fluxo</div>
+     <div class="auth-t">Recuperar acesso</div>
+     <p class="auth-s">Enviamos um link para definires uma nova palavra-passe.</p>
+     <div class="fld"><label class="fld-l">Email</label><input id="ae" type="email" placeholder="nome@entidade.pt"></div>
+     <button class="btn" style="margin-top:6px" onclick="ECRA='enviado';renderAuth()">Enviar link</button>
+     <p class="auth-foot"><button onclick="ECRA='login';renderAuth()">Voltar</button></p>`;
+  }
+  else if(ECRA==='enviado'){
+    b.innerHTML=`<div class="auth-logo">Fluxo</div>
+     <div class="auth-t">Verifica o teu email</div>
+     <p class="auth-s">Se existir uma conta com esse endereço, recebeste um link. É válido 60 minutos e só pode ser usado uma vez.</p>
+     <button class="btn sec" onclick="ECRA='definir';renderAuth()">Simular clique no link</button>
+     <p class="auth-foot"><button onclick="ECRA='login';renderAuth()">Voltar</button></p>`;
+  }
+  else if(ECRA==='definir'){
+    b.innerHTML=`<div class="auth-logo">Fluxo</div>
+     <div class="auth-t">Definir palavra-passe</div>
+     <p class="auth-s">Escolhe uma palavra-passe para concluir o acesso à <b>Escola Nova</b>.</p>
+     <div class="fld"><label class="fld-l">Palavra-passe</label><input id="np1" type="password" placeholder="mínimo 10 caracteres"></div>
+     <div class="fld"><label class="fld-l">Repetir</label><input id="np2" type="password"></div>
+     <div id="aerr"></div>
+     <button class="btn" style="margin-top:6px" onclick="definirPass()">Concluir</button>`;
+  }
+}
+function verLogin(){
+  $('v-lp').classList.add('hide');
+  $('v-auth').classList.remove('hide');
+  ECRA='login'; renderAuth();
+  window.scrollTo({top:0});
+}
+function verLanding(){
+  $('v-auth').classList.add('hide');
+  $('v-lp').classList.remove('hide');
+  window.scrollTo({top:0});
+}
+function demo(e){ iniciar(CONTAS[e], e); }
+function entrar(){
+  const e=($('ae').value||'').trim().toLowerCase(), p=$('ap').value||'';
+  if(!e||!p){ $('aerr').innerHTML='<p class="err-msg">Preenche os dois campos.</p>'; return; }
+  const c=CONTAS[e];
+  if(!c){ $('aerr').innerHTML='<p class="err-msg">Email ou palavra-passe incorretos.</p>'; return; }
+  iniciar(c,e);
+}
+function definirPass(){
+  const a=$('np1').value||'', b=$('np2').value||'';
+  if(a.length<10){ $('aerr').innerHTML='<p class="err-msg">Mínimo 10 caracteres.</p>'; return; }
+  if(a!==b){ $('aerr').innerHTML='<p class="err-msg">As palavras-passe não coincidem.</p>'; return; }
+  iniciar(CONTAS['ana@escolanova.pt'],'ana@escolanova.pt');
+}
+function staff(){ return SESSAO && SESSAO.papel==='staff'; }
+function minhaEnt(){ return SESSAO ? ENTIDADES.find(e=>e.nome===SESSAO.entidade) : null; }
+function temSuporte(){ const e=minhaEnt(); return !!(e && e.suporte); }
+function dentroDos30(){ const e=minhaEnt(); return !!(e && e.dias<=30); }
+function podeReportar(){ return staff() || temSuporte() || dentroDos30(); }
+function recebeAtualizacoes(){ return temSuporte() || dentroDos30(); }
+function iniciais(n){ return n.split(' ').filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase(); }
+
+function iniciar(c,email){
+  SESSAO={...c,email};
+  $('v-auth').classList.add('hide');
+  ['hdr','wrap','foot','bnav'].forEach(i=>$(i).classList.remove('hide'));
+  const txt=(id,v)=>{const e=$(id); if(e)e.textContent=v;};
+  const mostra=(id,v)=>{const e=$(id); if(e)e.classList.toggle('hide',!v);};
+  txt('org',SESSAO.entidade);
+  txt('ava',iniciais(SESSAO.nome));
+  txt('dd-nome',SESSAO.nome);
+  txt('dd-email',SESSAO.email);
+  mostra('tag-st',staff());
+  mostra('ne',staff());
+  mostra('bn-ents',staff());
+  carregarLocais();
+  VIEW='v1'; QF=null; VERTODAS=false; VERFUTURAS=false;
+  const bq=$('bq'); if(bq)bq.value='';
+  go('board');
+  arrancar();
+}
+function sair(){
+  SESSAO=null; ECRA='login'; ARRANCOU=false;
+  ['hdr','wrap','foot','bnav'].forEach(i=>$(i).classList.add('hide'));
+  renderAuth(); verLanding();
+}
+
+/* ================= ENTIDADES (staff) ================= */
+let ENTIDADES=[
+ {id:1,nome:'Escola Nova',nipc:'509 123 456',utilizadores:4,acoes:143,fonte:'Airtable',ativa:true,desde:'jan 2026',dias:82,ultimo:'há 4 min',contrato:true,suporte:true},
+ {id:2,nome:'Formar Mais',nipc:'508 991 233',utilizadores:2,acoes:61,fonte:'Google Sheets',ativa:true,desde:'fev 2026',dias:54,ultimo:'há 2 horas',contrato:true,suporte:true},
+ {id:3,nome:'Instituto Aveiro',nipc:'510 445 872',utilizadores:6,acoes:208,fonte:'Airtable',ativa:true,desde:'fev 2026',dias:47,ultimo:'há 1 dia',contrato:true,suporte:false},
+ {id:4,nome:'Academia Douro',nipc:'507 332 119',utilizadores:3,acoes:47,fonte:'Airtable',ativa:true,desde:'mar 2026',dias:19,ultimo:'há 19 dias',contrato:false,suporte:false},
+ {id:5,nome:'CenterForma',nipc:'509 887 004',utilizadores:2,acoes:0,fonte:'Notion',ativa:false,desde:'nov 2025',dias:140,ultimo:'há 4 meses',contrato:true,suporte:false},
+];
+
+function renderEnts(){
+  const at=ENTIDADES.filter(e=>e.ativa);
+  $('ents-body').innerHTML=`<div class="kpi">
+    <div><div class="kpi-n">${at.length}</div><div class="kpi-l">ativas</div></div>
+    <div><div class="kpi-n">${at.reduce((a,e)=>a+e.utilizadores,0)}</div><div class="kpi-l">utilizadores</div></div>
+    <div><div class="kpi-n">${at.reduce((a,e)=>a+e.acoes,0)}</div><div class="kpi-l">ações acompanhadas</div></div>
+    <div><div class="kpi-n">${at.filter(e=>e.suporte).length}</div><div class="kpi-l">com suporte</div></div>
+    <div><div class="kpi-n">${ENTIDADES.filter(e=>!e.contrato).length}</div><div class="kpi-l">sem contrato</div></div>
+  </div>
+  ${ENTIDADES.map(e=>`<button class="ent-row" onclick="verEnt(${e.id})">
+    <span class="dot-s ${!e.ativa?'off':(e.ultimo.includes('mes')||e.ultimo.includes('19 dias'))?'warn':'ok'}"></span>
+    <span class="ent-b">
+      <span class="ent-n">${e.nome}${!e.contrato?' <span class="pill" style="margin-left:6px">sem contrato</span>':''}</span>
+      <span class="ent-m">${e.utilizadores} utilizadores · ${e.acoes} ações · ${e.fonte} · ${e.ultimo}</span>
+    </span>
+    <span class="pill ${e.suporte?'fill':''}">${e.suporte?'suporte':(e.dias<=30?'setup · '+(30-e.dias)+'d':'sem suporte')}</span>
+    <span class="pill ${e.ativa?'fill':''}">${e.ativa?'ativa':'inativa'}</span>
+  </button>`).join('')}
+  <button class="btn sec sm" style="margin-top:20px" onclick="novaEnt()">Adicionar entidade</button>
+`;
+}
+
+function verEnt(id){
+  const e=ENTIDADES.find(x=>x.id===id);
+  $('modal').className='modal';
+  $('modal').innerHTML=`<div class="m-h"><div><div class="m-t">${e.nome}</div><div class="m-s">NIPC ${e.nipc} · desde ${e.desde}</div></div><button class="m-x" onclick="closeM()">×</button></div>
+   <div class="m-sec"><table>
+     <tr><td>Estado</td><td>${e.ativa?'Ativa':'Inativa'}</td></tr>
+     <tr><td>Utilizadores</td><td>${e.utilizadores}</td></tr>
+     <tr><td>Ações acompanhadas</td><td>${e.acoes}</td></tr>
+     <tr><td>Fonte de dados</td><td>${e.fonte}</td></tr>
+     <tr><td>Última atividade</td><td>${e.ultimo}</td></tr>
+     <tr><td>Contrato</td><td>${e.contrato?'Assinado':'<span style="color:var(--red)">Em falta</span>'}</td></tr>
+     <tr><td>Setup</td><td>há ${e.dias} dias</td></tr>
+   </table>
+   ${!e.contrato?`<div class="note" style="margin-top:14px"><span class="note-t">Contrato em falta</span><span class="note-s">Está a usar o Fluxo sem contrato de subcontratação assinado. Resolver antes de continuar.</span></div>`:''}</div>
+   <div class="m-sec">
+     <div class="note neutro"><span class="note-t2">Não tens acesso ao quadro desta entidade</span>
+     <span class="note-s">Vês quem tem acesso, o estado da ligação e a atividade. O conteúdo das ações e dos registos fica na base deles e só lhes é mostrado a eles.</span></div>
+   </div>
+   <div class="m-sec">
+     <div class="m-lbl">Plano de suporte mensal</div>
+     <div class="lrow" style="border-top:none;padding-top:0">
+       <span class="lrow-b"><span class="lrow-t">Suporte ativo</span>
+       <span class="lrow-s">${e.suporte?'Recebe atualizações da documentação e pode reportar problemas.':(e.dias<=30?`Sem plano, mas ainda dentro dos 30 dias de setup. Faltam ${30-e.dias} dias.`:'Sem plano. Não recebe atualizações nem pode reportar problemas.')}</span></span>
+       <button class="tog ${e.suporte?'on':''}" onclick="alternarSuporte(${id})"><i></i></button>
+     </div>
+     <p class="fld-h">Nos primeiros 30 dias após o setup o suporte está incluído. Depois disso, sem plano mensal a entidade deixa de receber documentação atualizada e o botão de reportar problemas desaparece.</p>
+   </div>
+   <div class="m-sec"><div class="fld"><label class="fld-l">Convidar utilizador</label>
+     <div class="inline"><input id="cv" placeholder="email@entidade.pt"><button class="btn sm" onclick="convidar(${id})">Convidar</button></div>
+     <p class="fld-h">Recebe um link para definir palavra-passe, válido 7 dias.</p></div></div>
+   <div class="m-f">
+     <button class="btn sec" onclick="alternarEnt(${id})">${e.ativa?'Desativar acesso':'Reativar acesso'}</button>
+     <p class="hint">${e.ativa?'Bloqueia o acesso de todos de imediato. Os dados nunca estiveram do nosso lado, por isso não se perde nada.':'Repõe o acesso com a configuração anterior.'}</p>
+     <button class="btn sec" style="margin-top:12px;border-color:var(--red-b);color:var(--red)" onclick="apagarEnt(${id})">Apagar definitivamente</button>
+   </div>`;
+  showOvl();
+}
+function alternarSuporte(id){
+  const e=ENTIDADES.find(x=>x.id===id); e.suporte=!e.suporte;
+  renderEnts(); verEnt(id);
+  toast(e.suporte?`Suporte ativado para ${e.nome}`:`Suporte desativado para ${e.nome}`);
+}
+function convidar(id){
+  const v=$('cv').value.trim();
+  if(!v.includes('@')){toast('Email inválido');return;}
+  ENTIDADES.find(x=>x.id===id).utilizadores++;
+  closeM();renderEnts();toast(`Convite enviado a ${v}`);
+}
+function alternarEnt(id){
+  const e=ENTIDADES.find(x=>x.id===id); e.ativa=!e.ativa;
+  closeM();renderEnts();toast(e.ativa?`${e.nome} reativada`:`${e.nome} desativada`);
+}
+function apagarEnt(id){
+  const e=ENTIDADES.find(x=>x.id===id);
+  $('modal').innerHTML=`<div class="m-h"><div class="m-t">Apagar ${e.nome}</div><button class="m-x" onclick="verEnt(${id})">×</button></div>
+   <div class="m-sec">
+     <p class="confirm">Apaga <b>${e.utilizadores} contas</b>, as vistas guardadas, os prazos e a credencial de acesso.</p>
+     <p class="confirm">As ações, os registos e os formandos <b>não são afetados</b>. Sempre estiveram na base de dados da entidade.</p>
+     <p class="confirm" style="color:var(--muted)">Não pode ser desfeito. Se for temporário, desativa em vez de apagar.</p>
+   </div>
+   <div class="m-f"><button class="btn" onclick="ENTIDADES=ENTIDADES.filter(x=>x.id!==${id});closeM();renderEnts();toast('${e.nome} apagada')">Apagar definitivamente</button>
+   <button class="btn sec" style="margin-top:8px" onclick="verEnt(${id})">Cancelar</button></div>`;
+}
+function novaEnt(){
+  $('modal').className='modal';
+  $('modal').innerHTML=`<div class="m-h"><div class="m-t">Adicionar entidade</div><button class="m-x" onclick="closeM()">×</button></div>
+   <div class="m-sec">
+     <div class="fld"><label class="fld-l">Nome</label><input id="en" placeholder="Escola de Formação, Lda"></div>
+     <div class="fld"><label class="fld-l">NIPC</label><input id="enif" placeholder="500 000 000"></div>
+     <div class="fld"><label class="fld-l">Fonte de dados</label><select id="ef"><option>Airtable</option><option>Google Sheets</option><option>Notion</option><option>Outra</option></select></div>
+     <div class="fld"><label class="fld-l">Email do primeiro utilizador</label><input id="ea" placeholder="direcao@entidade.pt"></div>
+     <p class="fld-h">A credencial de acesso à fonte é configurada depois, convosco, durante o setup.</p>
+   </div>
+   <div class="m-f"><button class="btn" onclick="criarEnt()">Criar e convidar</button></div>`;
+  showOvl();
+}
+function criarEnt(){
+  const n=$('en').value.trim(), a=$('ea').value.trim();
+  if(!n){toast('Falta o nome');return;}
+  if(!a.includes('@')){toast('Email inválido');return;}
+  ENTIDADES.unshift({id:Date.now(),nome:n,nipc:$('enif').value.trim()||'—',utilizadores:1,acoes:0,fonte:$('ef').value,ativa:true,desde:'agora',ultimo:'nunca',contrato:false});
+  closeM();renderEnts();toast(`${n} criada. Convite enviado.`);
+}
+
+
+/* ================= DEMOS DA LANDING ================= */
+const DM_COLS=['Dados','Perfis','Curso','Ação','Certificação','Conclusão'];
+
+// base fixa: as ações que não se movem durante a animação
+const DM_BASE=[
+ {col:0,n:'Design Systems · Abril',dt:'06 abr → 30 abr',tg:'Imersão',d:'Em 5 dias',k:''},
+ {col:0,n:'AI para Produto · Abril',dt:'13 abr → 09 mai',tg:'Curso',d:'Em 11 dias',k:''},
+ {col:1,n:'UX Iniciantes · Fev',dt:'05 fev → 26 fev',tg:'Lite',d:'Em 3 dias',k:''},
+ {col:1,n:'Escrita para UX · Fev',dt:'10 fev → 05 mar',tg:'Lite',d:'Em 7 dias',k:''},
+ {col:1,n:'Data-Driven Design · Fev',dt:'03 fev → 27 fev',tg:'Curso',d:'Em 9 dias',k:''},
+ {col:0,n:'Design Ops · Maio',dt:'04 mai → 29 mai',tg:'Curso',d:'Em 18 dias',k:''},
+ {col:2,n:'UI com Figma · Janeiro',dt:'08 jan → 30 jan',tg:'Curso',d:'Atrasado 5d',k:'red'},
+ {col:2,n:'Métricas · Janeiro',dt:'13 jan → 05 fev',tg:'Curso',d:'Em 8 dias',k:''},
+ {col:2,n:'Acessibilidade · Jan',dt:'20 jan → 12 fev',tg:'Lite',d:'Em 12 dias',k:''},
+ {col:3,n:'UX Intermédio · Dez',dt:'02 dez → 19 dez',tg:'Curso',d:'Hoje',k:'hot'},
+ {col:3,n:'Research Aplicada · Dez',dt:'25 nov → 17 dez',tg:'Imersão',d:'Em 2 dias',k:''},
+ {col:3,n:'Prototipagem · Dezembro',dt:'09 dez → 08 jan',tg:'Curso',d:'Em 9 dias',k:''},
+ {col:4,n:'Facilitação · Novembro',dt:'04 nov → 28 nov',tg:'Curso',d:'Falta tabela de avaliações',k:'red',dash:true},
+ {col:4,n:'Liderança em Design · Nov',dt:'11 nov → 04 dez',tg:'Curso',d:'Em 4 dias',k:''},
+ {col:4,n:'Design Systems · Out',dt:'14 out → 06 nov',tg:'Imersão',d:'Hoje',k:'hot'},
+ {col:5,n:'Arquitetura Info · Out',dt:'21 out → 13 nov',tg:'Curso',d:'Falha no upload de 3 PDFs',k:'red'},
+ {col:5,n:'Portfolio UX · Novembro',dt:'03 nov → 21 nov',tg:'',d:'Concluída há 3 dias',k:'',dim:true},
+ {col:5,n:'AI para Designers · Out',dt:'07 out → 30 out',tg:'',d:'Concluída há 6 dias',k:'',dim:true},
+];
+
+// a ação que avança ao longo da animação
+const DM1=[
+ { movel:{col:1,n:'UX Avançado · Março',dt:'02 mar → 28 mar',tg:'Curso',d:'Hoje',k:'hot',act:true},
+   sync:'Sincronizado há 4 min',
+   cap:'O prazo do <b>Flow 1</b> é hoje. O cartão passa a cheio, com a data ao lado do nome.' },
+
+ { movel:{col:1,n:'UX Avançado · Março',dt:'02 mar → 28 mar',tg:'Curso',d:'Hoje',k:'hot',act:true},
+   detalhe:{n:'UX Avançado · Março 2026',s:'UXA002 · Curso · 11 formandos',feitos:1,atual:1,meta:'Hoje'},
+   sync:'Sincronizado há 4 min',
+   cap:'Cada cartão abre com o <b>resumo das seis fases</b>: o que já está feito, onde está agora e o que falta.' },
+
+ { movel:{col:1,n:'UX Avançado · Março',dt:'02 mar → 28 mar',tg:'Curso',d:'A correr no assistente de IA',k:'hot',act:true},
+   sigo:true,
+   sync:'A ler a base de dados...',
+   cap:'Colam a instrução no assistente de IA e ele <b>trabalha dentro do SIGO</b>, no computador da entidade.' },
+
+ { movel:{col:2,n:'UX Avançado · Março',dt:'02 mar → 28 mar',tg:'Curso',d:'Em 6 dias',k:'',act:true},
+   sync:'Sincronizado agora',
+   cap:'O cartão <b>avança sozinho</b> para o passo seguinte. Ninguém arrasta nada.' },
+
+ { movel:{col:2,n:'UX Avançado · Março',dt:'02 mar → 28 mar',tg:'Curso',d:'Em 6 dias',k:''},
+   destaque:['UI com Figma · Janeiro','Arquitetura Info · Out','Facilitação · Novembro'],
+   sync:'Sincronizado agora',
+   cap:'A <b>vermelho</b>, o que está travado. A <b>tracejado</b>, o que não avança até alguém resolver o que falta.' },
+
+ { movel:{col:2,n:'UX Avançado · Março',dt:'02 mar → 28 mar',tg:'Curso',d:'Em 6 dias',k:''},
+   reporte:{n:'Arquitetura Info · Out 2025',s:'ARQ003 · Flow 5 · Conclusão',erro:'Falha no upload de 3 de 8 PDFs'},
+   sync:'Sincronizado agora',
+   cap:'Quando o SIGO muda e um passo falha, reportam com <b>capturas de ecrã</b>. Atualizamos a documentação e as outras entidades recebem a correção.' },
+];
+
+let dm1i=0;
+function renderDm1(){
+  const e=$('dm1'); if(!e)return;
+  const p=DM1[dm1i];
+  const cartoes=[...DM_BASE, p.movel];
+  const dest=p.destaque||[];
+  let h='';
+  DM_COLS.forEach((c,i)=>{
+    const its=cartoes.filter(x=>x.col===i);
+    h+=`<div class="dm-col"><div class="dm-ch"><span>${c}</span><span class="dm-cn">${its.length}</span></div>`;
+    its.forEach(x=>{
+      const on=x.act||dest.includes(x.n);
+      h+=`<div class="dm-card ${on&&x.k!=='red'?'act':''} ${x.k==='red'?'red':''} ${x.dim?'dim':''} ${on?'foco':''}" ${x.dash?'style="border-style:dashed"':''}>
+        <div class="dm-n">${x.n}</div>
+        <div class="dm-dt">${x.dt}</div>
+        ${x.tg?`<div class="dm-tg">${x.tg}</div>`:''}
+        <div class="dm-d ${x.k}">${x.d}</div></div>`;
+    });
+    h+='</div>';
+  });
+  if(p.sigo){
+    h+=`<div class="dmo sigo"><div class="sg">
+      <div class="sg-bar"><span class="sg-dots"><i></i><i></i><i></i></span><span class="sg-url">sigo.pt</span></div>
+      <div class="sg-body">
+        <div class="sg-app">
+          <div class="sg-top">
+            <img class="sg-logo" alt="SIGO" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJ4AAABICAYAAAAH4kxJAAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAAnqADAAQAAAABAAAASAAAAADHnsaGAAAPAElEQVR4Ae1dXXIbuREGRsq+hjcwfQLLL1tJbVKmT2D5BJbkA9iqtffV1mssl+wDSJRPEPkE5lYqlaq8mHuCnb0B87prEukP4JDzA3RjfihT8qBKmhmg0cD0fNPobmBApfrUS+ArSEB/hTb7JiGBN+ORUos9OhsorR8ga5lGy+OUjjN7bszPSidTtaMm6vjQ5S2JbuqhB951Pbl/jPeUXuwvQTYSmnWg03qqFov/WVqt7imlB3ROQDXvVZJc3WQQ9sATENCqGGDbUU+UMfvEZ8jwSgmQV2qhPqqXhxOGzhWdjonfgviqX9TLp69F+i0k6IHX9UM5Gw9IS+0ro58R6z2G/YzAdqnm6oP66XDK0IWLAOymdcNcr6WkB15XYgbgviyeE5gAuAHDlrSbObnpQyVzf1FFPfCixMQQxQOONJw5Vj8+vWS4fTNFPfDaPOo359Bwr4gFp+EU2Xgnajd5d5OdgTZi8tXtgeeTipSHUIg2YyIbCqQTtdDHN9UOE+6tVXEPvDriw7A6V2ekwg7EatByN9TjFO+tA4IeeLFCdFrun0TOD6tKpaTlHvdajhdsDzxePkrZ8Ih6RXbac4mUNOGV2kkOe1tOllQPPE5GiJMl1pbb48hsWT+0iiLKE/TAy0sjf25nByzopKGVZrLMYR8myQtPPu+B55PRm/PXyzCJrzSfNyN77mFvz+VFEnfeA68sp9MxhUkivFasHOlBV5Ze9HUPvExUNlRi4LWOsizm2IOOEU5MUQ88SMmB7hOdyU5Er+licCXSbC3wdv/1nxFNpD/TRu0v72JKdtf7P374/lK8qzoEPejqSKsz2q0E3p/+/d8DipthSsqTzOUff/vLoaegflY90BF/Cgy/OLyq31BfoyyBrQMeNJ3WCYa9YDJm8fDL3/86CRLEFNQFXR8yiZFqNE0STXlNhFrrJ1JTiUpGEg1bXhd0ihZs9suZWJHWLdw64CmVDOveRG36+QLDeIwjAdZTGl67Gdprd/T2VthC4G1Y2DZOpzOHRWpspnYoQNynziWwhcBbpNJdmoQ+jGmS3p4fRAaHHXdDzsQt+Zywibg2WWfrgGeM+cDfMHm1P3w/5Wk8pZjwNxpDbFzS+l3UF19x3HqqkgS2DnjWW9UaNtWs1Fe61O8ahVLgTCR2VqLK0p+TqkSd+Iv63C4koLtgshEenz4Pvtv5faQ0OQFGTX+ffzdRD+97wBjR+uk5TYVF23U0GpNdF/N9a0TTPYlfAtsLPH9/6+e6D3JouXpsotBJ78XGCqsx3dYNtY3vxFfxbDyMXN6U1SYvVh1nF/1xcxK43cCbRy7kzOSLVcS9F5tJY6PHdkOt2/GI7LDkDhlGw0JPVxvOJJOvYi8hdFLHi8VHOi+O7hbuob9YSwBRAb3Awo07NI++ty6gM/esf1OGnnXklhr1gWe/tlo8q2Ws216S7WRon5CQ0Y5hcW5+LdxQ+WKh70fdmJsSA69BmUXwup+LrYrGfnOi6FnbTYdiZZkSMD9IH7DvVlsL5DhgUBzMjAh0ASIum1b1ajUkiomXah4xhRX5NtGuS6+ojVhBoTvpjZ+LtaMPbsVqpT8vtRJksEd/E9LmD1EalQrPOqpGnmho7eq5eabenge37IgDHj58qWsv5buSnRvzMTutHM2CVDkL6Gmlji/DCe25ryiYh010tj3ZoQ4vE8kJL9V6v7yR67pZ3gHJ0GTnyyyl32dn4hHfm8wNXty2aWBNndPxA1+UQAae+9qK4mAdpN3kMsiluCumh0zHAW9utZ2nfjBrZnduChZfUwHMgy+knZLFkDQ2aY2V3TykHtBfBiYCVr1EtmvEGkJnnuA5j+qxl6hppDsdqzL4eOCtVK7EPKacPnY+PpoxlEOmjOS++IUtR6Hr74FIlyfAHnXX5clyw+GcgAVMGfpnsZUBLd/ZBufiFCTxdKD7RGfQphtIBL4359hE8l3GnAde/PCKZemT9bapdk/fITWCP5c07XYZSu7Gh6Fil5/IGq++tqNVWCp+GOI7WCzNdu1UekAFI1eYgYmQVRkOi9U7u+JGGTTSDHSTZf+GdMSfnLCr1tkY2+emIA4DDzaFdSRYnlN6Q4+Dnip4uK1YD9jhDEOMfcuZtkLecFbFCfAgu4w8TjNBRNLHk2F4e3tOdk7toT++DZHSjjIpS2bXJmp61mKiF1+fVIZtO8oszqhsX+CADY9eEc0h6MLAw0bRPBrcWjVumHJeKHVYmg0gT4xvKyUefHK7cfI05dKYYahcp861W7V8ScPMc+vp1fO067QUoE0+BApcNvolA4ZoyRwJTSM6DfaY7LgxKaoDtj2Un42PYdqEZy4kY79L28h6aFyXDcDLp4gl8xUGCHheR4Jts6Pv0vB6Qs3NrqNJaoN3KqCp3KaSQncY0OVrOmBO8lnec+wPTSkMPKWG3opZZrYNfnbd6qiHbHXsbs4laxYI/a3WT6OC0dV6zXIwMmC/vOsCoKTN5xgepVgnDdUhTeeTgqGhWEomeQCS5sCTNKLUgWL5XvGyfCVoJtiRtRM5Q18jXRcAOafCvqiiTUamFG25Vic5Ozzlqxj7rDngTXkGakTG84FAIxevQgwM6S59cMMl9zsSHEW1LCY8U63VXc5GAQinwnmP3g4nmAYTUuMFE6JZJAHPpELXEHMak+H8WqRjCWwknqNIYYwGCZoNs8QuIjwTbLTDgo0AkHEq4P2LTgDZobmYW627lcyiJbOwxuPibvmewEA9vfjV/TZXviDyXCf3BMqULceKiSZJ0qJNeLap0x0AeadiadyzXYXjuOEUBp4LBfBD3Lpz5CGZTwTAT8ppoHWJeObG/CAZfkCOS1pZY5Uj8ZZxWtRb4ZoyMwA6D7h+o4Z+54xLS+OeI9lYUD3XaBh4IFqEPrrJcSiejuijms82blXM567smB8kwK8Wsikq+Mly2LpC2M5aw+usnzinwnLD6iI2wbRJWQquUAyNuco88BAAxq/R1I09QWg2oMj1kMpitOOO4FhIYR+hC1tXXH8Ba+4WaIjkNLm176SwU1tv304R5vpUObWKhAce6mDIxc6XdcEHA1YC347oWMzYty8GuJX73uKMVqCj+8JCWy5halJK7b39kdDEDOUy8EAFzYfAJ7bTr5UIfHZaJlRJdCzs2xGqrbQUAA3W3L4CyMm/VB8PKo3ocBqcM4+ovCaRTJs1ZeUsJjS2tNnjgIcWoMJfPH1MwoH2myArKrlVCQMvbXntfpkIa/k3ldywsynu9fhiZPDbdG7L2xjgSU6F7ZE4wtTrd5k6UY/KWdVrNxkQD7yMA6LTWEZtom2/gf391qx+8TgqXpavItbglavEXscMO7G8mtIB/IgE+ONq632WJc8e7YtOhe2kXwE07X+5nhzIp/gg4YdSfeBljSHAGGv7Gc+bgElqKc1bqH2Jd9TbKTFpUQ77dE4RAKVGHi5r0KEwkYZawanwNNB5lpvFGvJ89VVW3hx44LD2ejN+gaPH0+ny455Aq2y2/Hay1VsVwp5D2MnvkRdBh4akF1ByKladdcPc6tJ30tRuNjSRIKVcP9sBDw013SkTH/fwacIXty4dNp5tado0tDyGVr89B65V0CHXrWvEmS915FQsWTcJyDsHcujrXC6v0M/2wHOc6zsB4uoWneY67T/dlYYgf7VVrjbNgrQrBjVO8HDCQysYIXLAfTfsl3GUU7Hs59K+YnttKBJRJ8FkiFvXh3jwKrUHnvMOee3l9075OjHxpDYRdieCPT7cs5JT8xOEGE4vPi+13CDAaEKge8jGLJV30cYs0qnINzvJX3jOB9ELP/Ds3Y8Mhu4rY08O6eFVdoFjEXhAL1z7GMM/4+I+ns6u/Eejfi4UOLAKnY12LCYF3nUvMOw5w7huTZ7eAY6GVZrD5r7ewgaQiBJwMw5oybvqg4x1qV65l1ra+JIqQINJMnHOEX9vrm1a12enXgs92S1cZR/mzBXNOpxfUYD2o/1Ix3dzAA9AJ/+OK8X/imhXXXzck3UcH4lrPcouGx3d8q5B46VA+Ubdd8jPCClSn2b0hOlXH0uyyfPKn9s5a5PPobn0Bl/IJckVDfkwMfgXHzJ5O75Hqul9QRNDKX1Z0Fwy7RQg8UBvMeV6fJTiNJ+KwCuM77RCFb+qg08cTy+mJMh09dbBPpubPWLEdx4teW0QLGXSKA0lai8y7a4EGVkhQGbnly8eUYCcftLdxZoClNVsvP3upd2nGx5WCSo5sOewv3JaKQllLMieLY5PU8Hp8HOCEnlzfrIc+v00WS6Uylw9p+efUhb+Bva58zs+ENkyQZv/eHSZXeaP66ff5Y4B6xamNIzcX18uz8QdOrHWn2ZJYhPMA38QNpZDmY4+28SQRMN9GYTQ9Db4TF65XUtoNduwzCB4jeVOL5++DpZzBacXa5XXdpMhG7hWI665dmUUW2S+18hrvEftGqrURmjgsJJrMzS0ZTh57ZkwOWmbE3ozDxiKukXw1KiP9JxPL4p1sy/+rcZe46BI5L2aWnn8dBSvzatsUBeya7/tBjTuXLA/q+3H5WBW6+XRO47YKW9r7Nd0ozmuCA3wv+U65KsnE768VIohC2p9O9PMTi9C8/PxuIjeZ56tru9UlLljyHW/4QEwd5VSO5cfsWw+ZzWQauwiYSjBDYWEHLOCocmydLdLe5dC7EAaJFOs6ol4EFGNZSNBE6fC10AGvvYvLV4uPPf7FdPE1y7lrW08EMBjWdAXSG46aYisyERIt5vxYSFiytZBIDUcuUdV+mbg6C7LI1SI/rsg7SBEck35iMsdirKo2xlnh7/y2s11eZXpreywxUStTRidLYwFCr7IR7mN3HUReLkCC0LMp9p965I71KHhutgQwukja0xeJzQsSmBbV9z8GTxM95sWuf5uvlnXAmk4aKOQtm/bDes9k1PTdJoytn07KlHkQZefO80mmcVvlE9eucJzn8WyLNOFgVemvEnXsFnn0T/z3vbOZqTBLyvxrrZcb3n92wm87KG5peQ0fKhhltXdkUI+CLBvWvt01+Gt4nS7gZeJ2gHwCV2OsqwGx5RM4gntfP5zcDanAdNvtcq3Abzs6dohmMDn9lt+sMzeo2PeGZnSNdkuSzvW2TPTrbJjs/vpj70EegnUk8D/AbNDJB1q4fz8AAAAAElFTkSuQmCC">
+            <span class="sg-chip"></span>
+          </div>
+          <div class="sg-main">
+            <div class="sg-side">
+              <span class="sg-sec"></span>
+              <span class="sg-mi"></span><span class="sg-mi"></span><span class="sg-mi"></span>
+              <span class="sg-sec"></span>
+              <span class="sg-mi"></span><span class="sg-mi"></span>
+              <span class="sg-sec"></span>
+              <span class="sg-mi on"></span>
+              <span class="sg-mi"></span>
+              <span class="sg-sec"></span>
+              <span class="sg-sec"></span>
+            </div>
+            <div class="sg-form">
+              <div class="sg-ent"><span class="sg-ent-b"></span></div>
+              <span class="sg-h"></span>
+              <div class="sg-grid">
+                <div class="sg-f"><span class="sg-l"></span><span class="sg-i ativo"></span></div>
+                <div class="sg-f"><span class="sg-l"></span><span class="sg-i fill"></span></div>
+                <div class="sg-f"><span class="sg-l"></span><span class="sg-i fill"></span></div>
+                <div class="sg-f"><span class="sg-l"></span><span class="sg-i"></span></div>
+              </div>
+              <div class="sg-tabs"><span class="sg-tab on"></span><span class="sg-tab"></span></div>
+              <div class="sg-tbl">
+                <div class="sg-tr head"><i style="flex:0 0 14%"></i><i style="flex:0 0 26%"></i><i style="flex:0 0 18%"></i><i style="flex:1"></i></div>
+                <div class="sg-tr"><i style="flex:0 0 14%"></i><i style="flex:0 0 26%"></i><i style="flex:0 0 18%"></i><i style="flex:1"></i></div>
+                <div class="sg-tr alt"><i style="flex:0 0 14%"></i><i style="flex:0 0 26%"></i><i style="flex:0 0 18%"></i><i style="flex:1"></i></div>
+                <div class="sg-tr"><i style="flex:0 0 14%"></i><i style="flex:0 0 26%"></i><i style="flex:0 0 18%"></i><i style="flex:1"></i></div>
+                <div class="sg-tr alt"><i style="flex:0 0 14%"></i><i style="flex:0 0 26%"></i><i style="flex:0 0 18%"></i><i style="flex:1"></i></div>
+                <div class="sg-tr"><i style="flex:0 0 14%"></i><i style="flex:0 0 26%"></i><i style="flex:0 0 18%"></i><i style="flex:1"></i></div>
+              </div>
+              <span class="sg-btn"></span>
+            </div>
+          </div>
+        </div>
+        <div class="sg-ai">
+          <div class="sg-ai-top">
+            <svg class="sg-ai-logo" viewBox="0 0 24 24"><path d="M12 2.6v18.8M4.6 6.8l14.8 10.4M19.4 6.8L4.6 17.2" stroke="#D97757" stroke-width="2.6" stroke-linecap="round"/></svg>
+            <span class="sg-ai-n">Claude</span>
+          </div>
+          <div class="sg-ai-conv">
+            <div class="sg-ai-u">Corre o Flow 1 para a ação de formação "UX Avançado · Março 2026".<br><br>Código: UXA002<br>Formandos: 11</div>
+            <div class="sg-ai-c">Entrei no SIGO com as credenciais da entidade. Vou tratar dos 11 formandos, um a um.</div>
+            <div class="sg-ai-c">Três já tinham Nº SIGO, saltei-os. Dos restantes oito, cinco foram encontrados pelo número de documento.</div>
+            <div class="sg-ai-c">O sétimo não aparece pelo CC. Vou tentar pelo NIF, como diz a documentação<span class="dm-cursor"></span></div>
+          </div>
+          <div class="sg-ai-in">Responde ao Claude<span class="sg-ai-send">↑</span></div>
+        </div>
+      </div>
+    </div></div>`;
+  }
+  else if(p.reporte){
+    const r=p.reporte;
+    h+=`<div class="dmo"><div class="dmo-c">
+      <div class="dmo-h"><span class="dmo-t">${r.n}</span><span class="dmo-x">×</span></div>
+      <div class="dmo-s">${r.s}</div>
+      <div class="dmo-err"><span class="dmo-err-t">${r.erro}</span>
+      <span class="dmo-err-s">Repetir é seguro. Os certificados já foram emitidos no SIGO.</span></div>
+      <div class="dmo-l" style="margin-top:12px">Reportar à TheStarter</div>
+      <div class="dmo-ta">o campo Regime mudou de sítio no formulário<span class="dm-cursor"></span></div>
+      <div class="dmo-imgs"><span class="dmo-img"></span><span class="dmo-img"></span><span class="dmo-add">+</span></div>
+      <div class="dmo-b">Enviar com 2 capturas</div>
+    </div></div>`;
+  }
+  else if(p.detalhe){
+    const d=p.detalhe;
+    const fases=['Recolha de dados','Perfis de formandos','Curso e módulos','Criação da ação','Inscrição e certificação','Conclusão'];
+    h+=`<div class="dmo"><div class="dmo-c">
+      <div class="dmo-h"><span class="dmo-t">${d.n}</span><span class="dmo-x">×</span></div>
+      <div class="dmo-s">${d.s}</div>
+      <div class="dmo-l">Progresso</div>
+      ${fases.map((f,i)=>{
+        const on=i<d.feitos, now=i===d.atual;
+        return `<div class="dmo-st ${on||now?'':'off'}">
+          <span class="dmo-d ${on?'on':now?'now':''}"></span>
+          <span class="dmo-n">Flow ${i} · ${f}</span>
+          <span class="dmo-m">${on?'feito':now?d.meta:''}</span></div>`;
+      }).join('')}
+      <div class="dmo-b">Copiar instrução do Flow ${d.atual}</div>
+    </div></div>`;
+  }
+  e.innerHTML=h;
+  const sc=$('dm1-sync'); if(sc)sc.textContent=p.sync;
+  const cp=$('dm1-cap'); if(cp)cp.innerHTML=p.cap;
+  dm1i=(dm1i+1)%DM1.length;
+}
+
+const DM2_FLOWS=['Recolha de dados','Perfis de formandos','Curso e módulos','Criação da ação','Certificação','Conclusão'];
+const DM2_TXT='Corre o Flow 1 (Perfis de formandos) para a ação "UX Avançado · Março 2026".\n\nCódigo do curso: UXA002\nFormandos: 11';
+
+function dm2Steps(atual,feitos){
+  const e=$('dm2-steps'); if(!e)return;
+  e.innerHTML=DM2_FLOWS.map((f,i)=>{
+    const on=i<feitos, now=i===atual;
+    return `<div class="dm-step ${on||now?'':'todo'}">
+      <span class="dm-sd ${on?'on':now?'now':''}"></span>
+      <span class="dm-st">Flow ${i} · ${f}</span></div>`;
+  }).join('');
+}
+
+let dm2t=[];
+function dm2Ciclo(){
+  dm2t.forEach(clearTimeout); dm2t=[];
+  const btn=$('dm2-btn'), paste=$('dm2-paste'), cap=$('dm2-cap');
+  if(!btn||!paste||!cap)return;
+  const at=(ms,f)=>dm2t.push(setTimeout(f,ms));
+
+  dm2Steps(1,1);
+  btn.textContent='Copiar instrução do Flow 1'; btn.classList.remove('on');
+  paste.innerHTML='<span class="dm-cursor"></span>';
+  cap.innerHTML='O cartão diz em que passo está. A instrução já vem com o <b>nome da ação de formação e o código do curso</b>.';
+
+  at(1500,()=>{ btn.classList.add('on'); btn.textContent='Copiado'; cap.innerHTML='Um clique copia. Não é preciso procurar o ficheiro certo nem preencher nada à mão.'; });
+  at(2100,()=>{ btn.classList.remove('on'); });
+
+  // escrever a instrução, caracter a caracter
+  let i=0;
+  const escreve=()=>{
+    if(i>DM2_TXT.length)return;
+    paste.innerHTML=esc(DM2_TXT.slice(0,i))+'<span class="dm-cursor"></span>';
+    i+=3;
+    at(18,escreve);
+  };
+  at(2300,()=>{ cap.innerHTML='Colam no assistente de IA e o passo corre <b>no computador da entidade</b>.'; escreve(); });
+
+  at(5200,()=>{ cap.innerHTML='Quando o registo aparece na base de dados, o quadro <b>atualiza-se sozinho</b>.'; dm2Steps(2,2); });
+  at(7600,dm2Ciclo);
+}
+
+
+/* ---- demo: assistente a operar o SIGO no browser da entidade ---- */
+const BW_PASSOS=[
+ { url:'SIGO · Pesquisa de Formandos',
+   campos:[['Nº Documento','','foco'],['NIF','',''],['Nome','','']],
+   btn:'Pesquisar', press:false,
+   log:[['→','A abrir a pesquisa de formandos']],
+   cap:'O assistente entra no SIGO com a <b>sessão da própria entidade</b>. As credenciais nunca passam pelo Fluxo.' },
+
+ { url:'SIGO · Pesquisa de Formandos',
+   campos:[['Nº Documento','12345678','ok'],['NIF','',''],['Nome','','']],
+   btn:'Pesquisar', press:true,
+   log:[['✓','A abrir a pesquisa de formandos'],['→','A pesquisar pelos primeiros 8 dígitos do CC']],
+   cap:'Preenche os campos com os dados que estão na base de dados da entidade.' },
+
+ { url:'SIGO · Pesquisa de Formandos',
+   campos:[['Nº Documento','12345678','ok'],['NIF','','vazio'],['Nome','','vazio']],
+   btn:'Pesquisar', press:false,
+   log:[['✓','A abrir a pesquisa de formandos'],['✓','Pesquisa por CC sem resultados'],['→','A tentar por NIF, identificador mais estável']],
+   cap:'Quando um caminho falha, <b>segue a regra que está na documentação</b> em vez de parar.' },
+
+ { url:'SIGO · Ficha de Formando',
+   campos:[['Nome completo','Ana Sousa','ok'],['Data de validade','2030/04/17','foco'],['Condição perante o trabalho','Outra','ok']],
+   btn:'Gravar', press:false,
+   log:[['✓','Formando encontrado por NIF'],['→','A verificar validade do documento']],
+   cap:'Regras fixas que ninguém se lembra de cor: <b>Condição "Outra", Área 481, Regime Pós-Laboral</b>.' },
+
+ { url:'SIGO · Ficha de Formando',
+   campos:[['Nome completo','Ana Sousa','ok'],['Data de validade','2030/04/17','ok'],['Condição perante o trabalho','Outra','ok']],
+   btn:'Gravar', press:true,
+   log:[['✓','Formando encontrado por NIF'],['✓','Validade confirmada'],['→','A gravar Nº SIGO na base de dados']],
+   cap:'Grava, e escreve o resultado de volta na base de dados da entidade.' },
+
+ { url:'SIGO · Ficha de Formando',
+   campos:[['Nome completo','Ana Sousa','ok'],['Data de validade','2030/04/17','ok'],['Condição perante o trabalho','Outra','ok']],
+   btn:'Gravar', press:false,
+   log:[['✓','Formando encontrado por NIF'],['✓','Validade confirmada'],['✓','Nº SIGO gravado'],['✓','Flow 1 concluído · 11 de 11 formandos']],
+   cap:'Fica um <b>registo de execução</b> na base de dados. É isso que faz o cartão avançar no quadro.' },
+];
+
+let bwi=0;
+function renderBw(){
+  const f=$('bw-form'); if(!f)return;
+  const p=BW_PASSOS[bwi];
+  const u=$('bw-url'); if(u)u.textContent=p.url;
+  f.innerHTML=p.campos.map(([l,v,k])=>`<div class="bw-f">
+      <span class="bw-fl">${l}</span>
+      <div class="bw-fi ${k==='foco'?'foco':''} ${v?'':'vazio'}">${v||'—'}</div>
+    </div>`).join('')
+    + `<div class="bw-btn ${p.press?'press':''}">${p.btn}</div>`;
+  const lg=$('bw-log');
+  if(lg) lg.innerHTML=`<div class="bw-lt">Assistente de IA</div>`+
+    p.log.map(([ic,t])=>`<div class="bw-li ${ic==='→'?'pend':''}"><i>${ic}</i><span>${t}</span></div>`).join('');
+  const c=$('bw-cap'); if(c)c.innerHTML=p.cap;
+  bwi=(bwi+1)%BW_PASSOS.length;
+}
+
+
+/* ---- calculadora ---- */
+const CC = { fixos:5, minFixo:20, minPorFormando:15 };
+let ccA=50, ccF=20, ccC=25;
+
+function calcular(a,f,c){
+  if(a!==null&&a!==undefined)ccA=+a;
+  if(f!==null&&f!==undefined)ccF=+f;
+  if(c!==null&&c!==undefined)ccC=+c;
+  const set=(id,v)=>{const e=$(id); if(e)e.textContent=v;};
+  set('cc-a',ccA); set('cc-f',ccF); set('cc-c',ccC);
+
+  const passos   = ccA*6;
+  const formandos= ccA*ccF;
+  const minutos  = ccA*CC.fixos*CC.minFixo + formandos*CC.minPorFormando;
+  const horas    = Math.round(minutos/60);
+  const dias     = horas/8;
+  const semana   = (horas/46).toFixed(1);
+  const euros    = Math.round(horas*ccC/50)*50;
+
+  set('cc-eur', euros.toLocaleString('pt-PT')+' €');
+  set('cc-h',horas);
+  set('cc-sem',semana);
+  set('cc-ff',formandos);
+  set('cc-p',passos);
+
+  const d=$('cc-dias');
+  if(d)d.innerHTML=`São <b>${horas} horas por ano</b>, o equivalente a ${dias.toFixed(dias<10?1:0)} dias de trabalho de uma pessoa. Com o Fluxo, cada ação passa a ocupar alguns minutos de supervisão.`;
+}
+
+function arrancarDemos(){
+  if(!$('dm1'))return;
+  renderDm1();
+  setInterval(renderDm1,2600);
+  dm2Ciclo();
+  renderBw();
+  setInterval(renderBw,2400);
+  calcular(null,null);
+}
+
+/* ---------- nav ---------- */
+function go(v){
+  ['board','docs','set','ents'].forEach(x=>$('v-'+x).classList.toggle('hide',x!==v));
+  $('nb').classList.toggle('on',v==='board');
+  $('nd').classList.toggle('on',v==='docs');
+  $('bn-board').classList.toggle('on',v==='board');
+  $('bn-docs').classList.toggle('on',v==='docs');
+  $('bn-set').classList.toggle('on',v==='set');
+  $('ne').classList.toggle('on',v==='ents');
+  $('bn-ents').classList.toggle('on',v==='ents');
+  if(v==='ents')renderEnts();
+  if(v==='docs')renderDocs();
+  if(v==='set')renderSet();
+  if(v==='docs'&&$('doc-read')&&!$('doc-read').classList.contains('hide')){}
+}
+function toggleTheme(){
+  const c=document.documentElement.getAttribute('data-theme');
+  const d=window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const now=c||(d?'dark':'light');
+  const novo=now==='dark'?'light':'dark';
+  document.documentElement.setAttribute('data-theme',novo);
+  try{localStorage.setItem('fluxo-tema',novo);}catch(e){}
+}
+try{const t=localStorage.getItem('fluxo-tema');if(t)document.documentElement.setAttribute('data-theme',t);}catch(e){}
+function skeleton(){
+  let h='';
+  const n=[2,1,2,1,2,1];
+  COLS.forEach((c,i)=>{
+    h+=`<div class="col"><div class="col-h"><span class="col-t">${c}</span></div>`;
+    for(let k=0;k<n[i];k++){
+      h+=`<div class="sk-card">
+        <div class="sk" style="height:11px;width:82%;margin-bottom:8px"></div>
+        <div class="sk" style="height:9px;width:56%;margin-bottom:11px"></div>
+        <div class="sk" style="height:14px;width:42px;border-radius:3px;margin-bottom:9px"></div>
+        <div class="sk" style="height:9px;width:48%"></div></div>`;
+    }
+    h+='</div>';
+  });
+  $('board').innerHTML=h;
+  $('bsub').textContent='A ler dados...';
+}
+function renderAll(){renderViews();renderBoard();}
+let ARRANCOU=false;
+function arrancar(){
+  ARRANCOU=true;
+  renderViews();
+  renderBoard();
+  renderNotifs();
+  renderDocs();
+}
+renderAuth();
+arrancarDemos();
+</script>
+</body>
+</html>
