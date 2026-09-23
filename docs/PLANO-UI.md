@@ -43,6 +43,14 @@ Fonte: `FLUXO-SPEC.md` v1.1 (manda), `base/trae-pack/prototipo/fluxo.html` e as 
 - O quadro contava atrasadas, hoje e bloqueadas a partir do campo errado (`prazo` em vez de `estado`), e lia a credencial como objeto quando a coluna é texto cifrado. Corrigido em `lib/dados/credencial.ts`, partilhado pelo quadro, pela ligação de dados e pelo cron.
 - Verificação visual feita com um Supabase falso e dados fictícios, em 41 capturas (desktop, escuro, mobile, staff). Não entram no repositório.
 
+## Convites
+
+O convite automatiza os dois passos que se faziam à mão no Supabase: criar o utilizador Auth e a linha em `utilizadores`. A identidade continua no Supabase Auth.
+
+- `POST /api/admin/convites` cria a linha em `convites` (token, 7 dias, uso único) e envia o email por Resend com `/definir?convite=<token>`. Sem `RESEND_API_KEY`, devolve o link para partilhar à mão e a interface mostra-o.
+- `GET /api/convites/[token]` valida o link (existe, não usado, não expirado, entidade ativa). `POST` cria o utilizador Auth com a palavra-passe escolhida, a linha em `utilizadores`, marca o convite como usado e inicia sessão. Se já existir conta Auth com esse email, liga-a à entidade sem alterar a palavra-passe.
+- `NEXT_PUBLIC_SITE_URL` define a origem dos links; sem ela usa-se a origem do pedido.
+
 ## Fora deste plano (assinalado)
 
 - Contagem de "ações acompanhadas" por entidade (§15) exige um `acoes_count` do adaptador com service role. Mostra-se "—" até existir.

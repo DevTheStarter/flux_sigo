@@ -36,11 +36,11 @@ export function Equipa() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: e, funcao, entidade_id: s.entidadeId }),
       });
-      const j = (await r.json().catch(() => ({}))) as { erro?: string; convite?: { token: string }; nota?: string };
+      const j = (await r.json().catch(() => ({}))) as { erro?: string; emailEnviado?: boolean; ligacao?: string | null };
       if (!r.ok) throw new Error(j.erro || `Erro ${r.status}`);
       setEmail("");
-      toast(`Convite criado para ${e}`);
-      if (j.convite?.token && j.nota) setLigacao(`${window.location.origin}/definir?token=${encodeURIComponent(j.convite.token)}`);
+      toast(j.emailEnviado ? `Convite enviado a ${e}` : `Convite criado para ${e}. Partilha o link.`);
+      setLigacao(j.emailEnviado ? null : j.ligacao ?? null);
     } catch (err) {
       toast((err as Error).message);
     } finally {
@@ -74,8 +74,9 @@ export function Equipa() {
       <p className="fld-h">A pessoa recebe um email com o link de acesso, válido 7 dias.</p>
       {ligacao ? (
         <div className="note neutro" style={{ marginTop: 14 }}>
-          <span className="note-t2">Envio de email ainda não ativo</span>
-          <span className="note-s">Partilha esta ligação com a pessoa: <code style={{ wordBreak: "break-all" }}>{ligacao}</code></span>
+          <span className="note-t2">Envio de email não configurado</span>
+          <span className="note-s">Partilha este link com a pessoa. Válido 7 dias, uso único.</span>
+          <input readOnly value={ligacao} onFocus={(ev) => ev.currentTarget.select()} aria-label="Link do convite" style={{ marginTop: 8 }} />
         </div>
       ) : null}
     </div>

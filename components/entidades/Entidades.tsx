@@ -98,7 +98,7 @@ export function Entidades() {
       <button type="button" className="btn sec sm" style={{ marginTop: 20 }} onClick={() => setNova(true)}>Adicionar entidade</button>
 
       {entidadeAberta ? <DetalheEntidade e={entidadeAberta} onClose={() => setAberta(null)} onMudou={carregar} /> : null}
-      {nova ? <NovaEntidade onClose={() => setNova(false)} onCriada={() => { setNova(false); void carregar(); }} /> : null}
+      {nova ? <NovaEntidade onClose={() => setNova(false)} onCriada={() => void carregar()} /> : null}
     </section>
   );
 }

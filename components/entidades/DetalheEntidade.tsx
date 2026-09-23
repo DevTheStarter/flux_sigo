@@ -16,6 +16,7 @@ export function DetalheEntidade({ e, onClose, onMudou }: { e: EntidadeLinha; onC
   const supabase = useMemo(() => createClient(), []);
   const toast = useToast();
   const [email, setEmail] = useState("");
+  const [ligacaoConvite, setLigacaoConvite] = useState<string | null>(null);
   const [problemas, setProblemas] = useState<Problema[]>([]);
   const [apagar, setApagar] = useState(false);
   const [aTrabalhar, setATrabalhar] = useState(false);
@@ -43,10 +44,11 @@ export function DetalheEntidade({ e, onClose, onMudou }: { e: EntidadeLinha; onC
     setATrabalhar(true);
     try {
       const r = await fetch("/api/admin/convites", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: v, funcao: "admin", entidade_id: e.id }) });
-      const j = (await r.json().catch(() => ({}))) as { erro?: string };
+      const j = (await r.json().catch(() => ({}))) as { erro?: string; emailEnviado?: boolean; ligacao?: string | null };
       if (!r.ok) throw new Error(j.erro || `Erro ${r.status}`);
       setEmail("");
-      toast(`Convite criado para ${v}`);
+      setLigacaoConvite(j.emailEnviado ? null : j.ligacao ?? null);
+      toast(j.emailEnviado ? `Convite enviado a ${v}` : `Convite criado para ${v}. Partilha o link.`);
     } catch (err) {
       toast((err as Error).message);
     } finally {
@@ -141,6 +143,13 @@ export function DetalheEntidade({ e, onClose, onMudou }: { e: EntidadeLinha; onC
             <button type="button" className="btn sm" disabled={aTrabalhar} onClick={() => void convidar()}>Convidar</button>
           </div>
           <p className="fld-h">Recebe um link para definir palavra-passe, válido 7 dias. Entra como administrador da entidade.</p>
+          {ligacaoConvite ? (
+            <div className="note neutro" style={{ marginTop: 12, marginBottom: 0 }}>
+              <span className="note-t2">Envio de email não configurado</span>
+              <span className="note-s">Partilha este link com a pessoa. Válido 7 dias, uso único.</span>
+              <input readOnly value={ligacaoConvite} onFocus={(ev) => ev.currentTarget.select()} aria-label="Link do convite" style={{ marginTop: 8 }} />
+            </div>
+          ) : null}
         </div>
       </div>
       {problemas.length ? (

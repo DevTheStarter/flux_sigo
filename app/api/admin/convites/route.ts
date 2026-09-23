@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClientServer } from "../../../../lib/supabase/server";
+import { enviarEmail } from "../../../../lib/email";
 import { log } from "../../../../lib/log";
 
 const FUNCOES_VALIDAS = new Set(["admin", "gestor", "leitura"]);
@@ -101,6 +102,16 @@ export async function POST(req: Request) {
       );
     }
 
+    // já tem acesso? (utilizadores.email é único)
+    const jaUser = await supabase.from("utilizadores").select("id, entidade_id").eq("email", email).maybeSingle();
+    if (jaUser.data) {
+      const mesma = (jaUser.data as { entidade_id: string }).entidade_id === entidadeId;
+      return NextResponse.json(
+        { erro: mesma ? "Esta pessoa já tem acesso a esta entidade." : "Este email já tem conta noutra entidade." },
+        { status: 409 },
+      );
+    }
+
     let existente: { usado_em: unknown; expira_em: string } | null = null;
     try {
       const res = await supabase
@@ -159,7 +170,7 @@ export async function POST(req: Request) {
         { status: 500 },
       );
     }
-    if (!convite) {
+    if (!convite || !convite.token || !convite.id) {
       return NextResponse.json(
         { erro: "Falha ao criar convite." },
         { status: 500 },
@@ -174,6 +185,31 @@ export async function POST(req: Request) {
       criado_por: user.id,
     });
 
+    // email com o link (§16: válido 7 dias, uso único)
+    const origem = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(req.url).origin;
+    const ligacao = `${origem}/definir?convite=${encodeURIComponent(convite.token)}`;
+    let entNome = "a vossa entidade";
+    try {
+      const e = await supabase.from("entidades").select("nome").eq("id", entidadeId).maybeSingle();
+      const nomeEnt = (e.data as unknown as { nome?: string } | null)?.nome;
+      if (nomeEnt) entNome = nomeEnt;
+    } catch {
+      /* fica o texto genérico */
+    }
+    const esc = (t: string) => t.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] as string);
+    const envio = await enviarEmail({
+      para: email,
+      assunto: `Acesso ao Fluxo · ${entNome}`,
+      html:
+        `<p>Foste convidado para o Fluxo, o quadro das ações de formação da <b>${esc(entNome)}</b>.</p>` +
+        `<p>Para concluir o acesso, define a tua palavra-passe aqui:</p>` +
+        `<p><a href="${ligacao}">${ligacao}</a></p>` +
+        `<p>O link é válido durante 7 dias e só pode ser usado uma vez. Se não esperavas este email, ignora-o.</p>` +
+        `<p style="color:#8d8d8d;font-size:12px">Enviado por Fluxo · TheStarter</p>`,
+    });
+    const emailEnviado = envio.ok && envio.id !== "DEV-NO-RESEND";
+    if (!emailEnviado) log.warn("convite sem email", { convite_id: convite.id, motivo: envio.ok ? "resend não configurado" : "falha no envio" });
+
     return NextResponse.json(
       {
         convite: {
@@ -182,11 +218,10 @@ export async function POST(req: Request) {
           funcao: convite.funcao,
           entidade_id: convite.entidade_id,
           expira_em: convite.expira_em,
-          token: convite.token,
         },
-        nota:
-          "Envio de email pendente de integração Resend. Por enquanto partilhe " +
-          "manualmente o link /definir?convite_token=<token> com o utilizador.",
+        emailEnviado,
+        // só quando o email não saiu: para partilhar à mão
+        ligacao: emailEnviado ? null : ligacao,
       },
       { status: 201 },
     );
