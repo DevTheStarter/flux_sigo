@@ -1,7 +1,16 @@
+import { fileURLToPath } from "node:url";
+
+const pastaApp = fileURLToPath(new URL("./app", import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  webpack(config) {
+    // app/landing.html é servida tal e qual por app/route.ts; importa-se como texto.
+    config.module.rules.push({ test: /\.html$/, include: pastaApp, type: "asset/source" });
+    return config;
+  },
   async headers() {
     return [
       {
