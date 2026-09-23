@@ -5,6 +5,7 @@ import { useSessao } from "../../lib/cliente/sessao";
 import { relativo } from "../../lib/cliente/datas";
 import { useToast } from "../ui/Toast";
 import type { EstadoLigacaoResposta } from "../../app/api/ligacao/route";
+import { CAMPOS_MAPEAVEIS, FILTROS_PADRAO, type FiltrosSimples } from "../../lib/dados/mapa";
 
 const FONTES: [string, string, string][] = [
   ["airtable", "Airtable", "Base com as tabelas de ações e de registos de execução"],
@@ -24,7 +25,10 @@ export function Ligacao() {
   const [tblAcoes, setTblAcoes] = useState("");
   const [tblLogs, setTblLogs] = useState("");
   const [tblForm, setTblForm] = useState("");
+  const [mapa, setMapa] = useState<Record<string, string>>({});
+  const [filtros, setFiltros] = useState<FiltrosSimples>({ formatoIgual: "", estadoDiferente: "" });
   const [aGuardar, setAGuardar] = useState(false);
+  const [aGuardarCampos, setAGuardarCampos] = useState(false);
   const [aSincronizar, setASincronizar] = useState(false);
 
   const ler = useCallback(async (verificar = false) => {
@@ -33,6 +37,11 @@ export function Ligacao() {
       const j = (await r.json()) as EstadoLigacaoResposta;
       setEstado(j);
       setBase((b) => b || j.fonteBase || "");
+      setTblAcoes((v) => v || j.tabelas?.acoes || "");
+      setTblLogs((v) => v || j.tabelas?.registos || "");
+      setTblForm((v) => v || j.tabelas?.formandos || "");
+      setMapa(j.mapaCampos ?? {});
+      setFiltros(j.filtros ?? { formatoIgual: "", estadoDiferente: "" });
     }
   }, []);
 
@@ -50,6 +59,20 @@ export function Ligacao() {
     if (!r.ok) { toast("Não foi possível guardar a ligação"); return; }
     setToken("");
     toast("Ligação guardada");
+    await ler(true);
+  }
+
+  /** Campos e filtros: guardados à parte da credencial, sem tocar no token. */
+  async function guardarCampos() {
+    setAGuardarCampos(true);
+    const r = await fetch("/api/ligacao", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mapaCampos: mapa, filtros }),
+    });
+    setAGuardarCampos(false);
+    if (!r.ok) { toast("Não foi possível guardar os campos"); return; }
+    toast("Campos e filtros guardados");
     await ler(true);
   }
 
@@ -122,6 +145,46 @@ export function Ligacao() {
           </div>
           <div className="fld"><label className="fld-l" htmlFor="lig-tf">Tabela de formandos (só para verificar que não está acessível)</label><input id="lig-tf" value={tblForm} onChange={(e) => setTblForm(e.target.value)} placeholder="Formandos" /><p className="fld-h">Nunca é lida. Serve para confirmar que a credencial não lhe chega.</p></div>
           <button type="button" className="btn sm" disabled={aGuardar || !base.trim()} onClick={() => void guardar()}>Guardar ligação</button>
+        </>
+      ) : null}
+
+      {admin ? (
+        <>
+          <h2 style={{ marginTop: 34 }}>Campos e filtros</h2>
+          <p className="sdesc">Se as vossas colunas têm nomes diferentes dos da base de referência, indiquem aqui o nome de cada uma. Vazio usa o nome por defeito. Só estes campos são lidos.</p>
+          <p className="fld-l">Tabela de ações de formação</p>
+          {CAMPOS_MAPEAVEIS.filter((c) => c.tabela === "acoes").map((c) => (
+            <div className="lrow" key={c.k}>
+              <span className="lrow-b"><span className="lrow-t">{c.rotulo}</span>{c.nota ? <span className="lrow-s">{c.nota}</span> : null}</span>
+              <input
+                aria-label={`Nome do campo ${c.rotulo}`}
+                value={mapa[c.k] ?? ""}
+                onChange={(e) => setMapa({ ...mapa, [c.k]: e.target.value })}
+                placeholder={c.padrao}
+                style={{ maxWidth: 220 }}
+              />
+            </div>
+          ))}
+          <p className="fld-l" style={{ marginTop: 18 }}>Tabela de registos de execução</p>
+          {CAMPOS_MAPEAVEIS.filter((c) => c.tabela === "registos").map((c) => (
+            <div className="lrow" key={c.k}>
+              <span className="lrow-b"><span className="lrow-t">{c.rotulo}</span>{c.nota ? <span className="lrow-s">{c.nota}</span> : null}</span>
+              <input
+                aria-label={`Nome do campo ${c.rotulo}`}
+                value={mapa[c.k] ?? ""}
+                onChange={(e) => setMapa({ ...mapa, [c.k]: e.target.value })}
+                placeholder={c.padrao}
+                style={{ maxWidth: 220 }}
+              />
+            </div>
+          ))}
+          <p className="fld-l" style={{ marginTop: 18 }}>Filtros</p>
+          <p className="fld-h" style={{ marginTop: 0 }}>Que ações de formação entram no quadro. Vazio não filtra. Por defeito: Formato igual a {FILTROS_PADRAO.formatoIgual} e Estado diferente de {FILTROS_PADRAO.estadoDiferente}.</p>
+          <div style={{ display: "flex", gap: 10 }}>
+            <div className="fld" style={{ flex: 1 }}><label className="fld-l" htmlFor="lig-f-formato">Formato igual a</label><input id="lig-f-formato" value={filtros.formatoIgual} onChange={(e) => setFiltros({ ...filtros, formatoIgual: e.target.value })} placeholder="sem filtro" /></div>
+            <div className="fld" style={{ flex: 1 }}><label className="fld-l" htmlFor="lig-f-estado">Estado diferente de</label><input id="lig-f-estado" value={filtros.estadoDiferente} onChange={(e) => setFiltros({ ...filtros, estadoDiferente: e.target.value })} placeholder="sem filtro" /></div>
+          </div>
+          <button type="button" className="btn sm" disabled={aGuardarCampos} onClick={() => void guardarCampos()}>Guardar campos e filtros</button>
         </>
       ) : null}
 

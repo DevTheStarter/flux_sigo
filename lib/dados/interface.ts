@@ -38,4 +38,6 @@ export interface FonteDeDados {
   obterAcoes(): Promise<Acao[]>;
   obterRegistos(): Promise<Registo[]>;
   verificarLigacao(): Promise<EstadoLigacao>;
+  /** número de ações acompanhadas, barato (§15 KPI). Nunca devolve conteúdo. */
+  contarAcoes(): Promise<number>;
 }

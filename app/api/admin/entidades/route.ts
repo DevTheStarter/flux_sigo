@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClientServer } from "../../../../lib/supabase/server";
 import { createClientService } from "../../../../lib/supabase/service";
 import { log } from "../../../../lib/log";
+import { fonteDaEntidade } from "../../../../lib/cron/quadro";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -75,6 +76,22 @@ export async function GET() {
     for (const p of (probs.data ?? []) as { entidade_id: string | null; estado: string }[]) {
       if (p.estado === "aberto" && p.entidade_id) abertos.set(p.entidade_id, (abertos.get(p.entidade_id) ?? 0) + 1);
     }
+    // §15 KPI "ações acompanhadas": só o número, via adaptador (cache de 15 min).
+    // Nunca chega aqui nome, estado ou registo de uma ação (§2.4).
+    const contagens = new Map<string, number>();
+    await Promise.all(
+      ((ents.data ?? []) as { id: string; ativa: boolean }[])
+        .filter((e) => e.ativa && fonte.get(e.id)?.configurada)
+        .map(async (e) => {
+          try {
+            const f = await fonteDaEntidade(sb, e.id);
+            if ("erro" in f) return;
+            contagens.set(e.id, await f.fonte.contarAcoes());
+          } catch (err) {
+            log.warn("entidades contar acoes", { entidade_id: e.id, err: (err as Error).message });
+          }
+        }),
+    );
     const lista = ((ents.data ?? []) as any[]).map((e) => ({
       ...e,
       utilizadores: porEnt.get(e.id)?.utilizadores ?? 0,
@@ -82,8 +99,7 @@ export async function GET() {
       fonteTipo: fonte.get(e.id)?.tipo ?? null,
       fonteConfigurada: fonte.get(e.id)?.configurada ?? false,
       problemasAbertos: abertos.get(e.id) ?? 0,
-      /** o adaptador ainda não reporta acoes_count; ver docs/PLANO-UI.md */
-      acoes: null as number | null,
+      acoes: contagens.has(e.id) ? (contagens.get(e.id) as number) : (null as number | null),
     }));
     return NextResponse.json({ entidades: lista });
   } catch (e) {

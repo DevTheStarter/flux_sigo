@@ -43,7 +43,16 @@ Fonte: `FLUXO-SPEC.md` v1.1 (manda), `base/trae-pack/prototipo/fluxo.html` e as 
 - O quadro contava atrasadas, hoje e bloqueadas a partir do campo errado (`prazo` em vez de `estado`), e lia a credencial como objeto quando a coluna é texto cifrado. Corrigido em `lib/dados/credencial.ts`, partilhado pelo quadro, pela ligação de dados e pelo cron.
 - Verificação visual feita com um Supabase falso e dados fictícios, em 41 capturas (desktop, escuro, mobile, staff). Não entram no repositório.
 
+## Segunda passagem (crons, mapa de campos, testes)
+
+- `/api/cron/prazos` reescrito: responde a GET (a Vercel Cron chama com GET), deteta transições pelo `estado` do cartão e pela coluna, guarda o anterior em `estado_notificacoes` (`coluna`, `estado`), respeita as preferências por evento e canal, cria notificações na app e envia email sem emojis. Emite `falha_sync` na transição ok → falha, com uma linha `__sync` por entidade. Primeira execução regista sem avisar.
+- `/api/cron/relatorio` (de hora a hora, envia quando `dia_semana` e `hora` batem em Europe/Lisbon; `?forcar=<entidade_id>` para testar) e `/api/cron/anexos` (diário, apaga do Storage e da tabela o que passou `apagar_em`). Ambos em `vercel.json`. Lógica partilhada em `lib/cron/`.
+- Migração 0005: vistas semeadas "Todas" e "A precisar de atenção" (§4.5), com backfill das entidades existentes; filtros por defeito nas entidades novas.
+- Ligação de dados: secção "Campos e filtros" (admin) para `mapa_campos` e `filtros`. As chaves dos filtros são os nossos nomes de campo e o adaptador traduz pelo mapa. As colunas de recurso da base TheStarter (Formandos 1..9, Tabela Avaliações) só são pedidas quando os dois campos calculados não estão mapeados.
+- KPI "ações acompanhadas" (§15): `contarAcoes()` no adaptador, só o número, com a cache de 15 minutos.
+- Testes: `test/segredos.test.ts` (§8.4) e `test/rls.integration.test.ts` (§6.1, corre só com `FLUXO_TEST_*` contra um projeto de teste).
+- `scripts/seed-documentos.ts` publica `docs/flows/*.md` e recusa credenciais em claro (§13.3). Os sete ficheiros ainda não estão no repositório.
+
 ## Fora deste plano (assinalado)
 
-- Contagem de "ações acompanhadas" por entidade (§15) exige um `acoes_count` do adaptador com service role. Mostra-se "—" até existir.
-- Crons de relatório e purga de anexos, seed real dos sete documentos, adaptadores Google Sheets e Notion.
+- Adaptadores Google Sheets e Notion. Conteúdo real dos sete documentos (ver `docs/flows/README.md`).

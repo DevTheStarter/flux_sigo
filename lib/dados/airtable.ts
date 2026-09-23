@@ -1,5 +1,6 @@
 import type { Acao, EstadoLigacao, FonteDeDados, Registo } from "./interface";
 import { log } from "../log";
+import { MAPA_PADRAO, nomeNaFonte } from "./mapa";
 
 /**
  * Adaptador Airtable read-only.
@@ -47,23 +48,6 @@ const CAMPOS_NOSSOS_REGISTO = [
   "r_detalhe",
 ] as const;
 
-const MAPA_PADRAO: Record<string, string> = {
-  nome: "Name",
-  codigoCurso: "Código Curso",
-  dataInicio: "Start date",
-  dataFim: "End Date",
-  tipo: "Tipo Formação",
-  formato: "Formato",
-  diasSemana: "Dias Semana",
-  estado: "Estado",
-  ano: "Ano",
-  formandos: "Nº Formandos",
-  temAvaliacoes: "Tem Avaliações",
-  r_acaoId: "Ação de Formação",
-  r_flow: "Flow",
-  r_estado: "Status",
-  r_detalhe: "Details",
-};
 
 const FLOW: Record<string, number> = {
   "Flow 0 (Data Collection)": 0,
@@ -278,7 +262,8 @@ async function listarTodos(
   tabela: string,
   fieldsQuery: string,
   filtros?: Record<string, unknown>,
-  cellFormatJson = false
+  cellFormatJson = false,
+  mapa: Record<string, string> = {}
 ): Promise<any[]> {
   const todos: any[] = [];
   let offset: string | undefined;
@@ -287,7 +272,7 @@ async function listarTodos(
     if (offset) extra.set("offset", offset);
     if (cellFormatJson) extra.set("cellFormat", "json");
     if (filtros && Object.keys(filtros).length) {
-      const formula = filtrosParaFormula(filtros);
+      const formula = filtrosParaFormula(filtros, mapa);
       if (formula) extra.set("filterByFormula", formula);
     }
     const qs = [fieldsQuery, extra.toString()].filter(Boolean).join("&");
@@ -300,10 +285,15 @@ async function listarTodos(
   return todos;
 }
 
-function filtrosParaFormula(filtros: Record<string, unknown>): string {
+/**
+ * As chaves dos filtros são os nossos nomes de campo (§7.3: estado, formato) e
+ * são traduzidas pelo mapa da entidade. Chaves desconhecidas passam tal como estão.
+ */
+function filtrosParaFormula(filtros: Record<string, unknown>, mapa: Record<string, string>): string {
   const partes: string[] = [];
-  for (const [campo, v] of Object.entries(filtros)) {
+  for (const [chave, v] of Object.entries(filtros)) {
     if (v === null || v === undefined || v === "") continue;
+    const campo = nomeNaFonte(mapa, chave);
     if (typeof v === "object" && v !== null) {
       const obj = v as Record<string, unknown>;
       if ("$in" in obj && Array.isArray(obj["$in"])) {
@@ -363,11 +353,16 @@ export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
       const cached = cacheGet<{ acoes: Acao[]; acaoNameId: Map<string, string> }>(cacheKey);
       if (cached) return cached.acoes;
       const camposQs = buildFieldsQuery(mapa, CAMPOS_NOSSOS_ACAO);
-      const extras = [];
-      for (let i = 1; i <= 9; i++) extras.push(`fields[]=${urlB64(i === 1 ? "Formandos" : `Formandos ${i}`)}`);
-      extras.push(`fields[]=${urlB64("Tabela Avaliações")}`);
+      // Colunas de recurso da base TheStarter (Formandos 1..9, Tabela Avaliações),
+      // só quando a entidade não mapeou os dois campos calculados. Numa base com
+      // outros nomes, pedir colunas inexistentes faria a leitura falhar.
+      const extras: string[] = [];
+      if (!mapa["formandos"] && !mapa["temAvaliacoes"]) {
+        for (let i = 1; i <= 9; i++) extras.push(`fields[]=${urlB64(i === 1 ? "Formandos" : `Formandos ${i}`)}`);
+        extras.push(`fields[]=${urlB64("Tabela Avaliações")}`);
+      }
       const qsAcoes = [camposQs, ...extras].filter(Boolean).join("&");
-      const recs = await listarTodos(token, baseId, tblAcoes, qsAcoes, filtros);
+      const recs = await listarTodos(token, baseId, tblAcoes, qsAcoes, filtros, false, mapa);
       const acoes: Acao[] = [];
       const acaoNameId = new Map<string, string>();
       for (const rec of recs) {
@@ -396,6 +391,10 @@ export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
         if (r) out.push(r);
       }
       return out;
+    },
+
+    async contarAcoes(): Promise<number> {
+      return (await self.obterAcoes()).length;
     },
 
     async verificarLigacao(): Promise<EstadoLigacao> {
