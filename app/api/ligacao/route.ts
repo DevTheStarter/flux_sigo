@@ -4,6 +4,7 @@ import { criarAirtable, invalidarCache, ultimaLeituraDe } from "../../../lib/dad
 import { COLUNAS_CONFIG_FONTE, configFonte, tokenDaCredencial, type ConfigFonteRow } from "../../../lib/dados/credencial";
 import { encriptar } from "../../../lib/cifra";
 import { log } from "../../../lib/log";
+import { filtrosParaSimples, limparMapa, simplesParaFiltros, type FiltrosSimples } from "../../../lib/dados/mapa";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -19,6 +20,10 @@ export interface EstadoLigacaoResposta {
   ultimaLeitura: string | null;
   contagens: { acoes: number; registos: number } | null;
   credencialAtualizadaEm: string | null;
+  tabelas: { acoes: string | null; registos: string | null; formandos: string | null };
+  /** o nosso campo → campo na fonte; só as chaves que a entidade alterou */
+  mapaCampos: Record<string, string>;
+  filtros: FiltrosSimples;
 }
 
 async function contexto() {
@@ -57,6 +62,13 @@ export async function GET(req: Request) {
     ultimaLeitura: null,
     contagens: null,
     credencialAtualizadaEm: cfg?.atualizado_em ?? null,
+    tabelas: {
+      acoes: cfg?.fonte_tabela_acoes ?? null,
+      registos: cfg?.fonte_tabela_registos ?? null,
+      formandos: cfg?.fonte_tabela_formandos ?? null,
+    },
+    mapaCampos: limparMapa(cfg?.mapa_campos),
+    filtros: filtrosParaSimples(cfg?.filtros),
   };
   if (!cfg || !fonteCfg) return NextResponse.json(base);
 
@@ -94,7 +106,8 @@ export async function GET(req: Request) {
 /**
  * POST: guarda a configuração da fonte. O token (só leitura) é cifrado no servidor
  * e nunca volta ao cliente. Só admin ou staff.
- * body: { fonteTipo?, fonteBase?, tabelaAcoes?, tabelaRegistos?, tabelaFormandos?, token? }
+ * body: { fonteTipo?, fonteBase?, tabelaAcoes?, tabelaRegistos?, tabelaFormandos?, token?,
+ *         mapaCampos?: { nossoCampo: nomeNaFonte }, filtros?: { formatoIgual, estadoDiferente } }
  */
 export async function POST(req: Request) {
   const ctx = await contexto();
@@ -119,6 +132,10 @@ export async function POST(req: Request) {
   if ("tabelaAcoes" in body) row.fonte_tabela_acoes = texto("tabelaAcoes");
   if ("tabelaRegistos" in body) row.fonte_tabela_registos = texto("tabelaRegistos");
   if ("tabelaFormandos" in body) row.fonte_tabela_formandos = texto("tabelaFormandos");
+  if ("mapaCampos" in body) row.mapa_campos = limparMapa(body.mapaCampos);
+  if ("filtros" in body && body.filtros && typeof body.filtros === "object") {
+    row.filtros = simplesParaFiltros(body.filtros as Partial<FiltrosSimples>);
+  }
   const token = texto("token");
   if (token) {
     try {

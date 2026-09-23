@@ -1,338 +1,145 @@
 import { NextResponse } from "next/server";
 import { createClientService } from "../../../../lib/supabase/service";
-import { tokenDaCredencial } from "../../../../lib/dados/credencial";
-import { criarAirtable, type AirtableCfg } from "../../../../lib/dados/airtable";
-import { derivar, type Cartao } from "../../../../lib/dados/derivar";
-import type { Acao, Registo } from "../../../../lib/dados/interface";
+import { cronAutorizado, respostaNaoAutorizado } from "../../../../lib/cron/autorizacao";
+import { escaparHtml, quadroDaEntidade } from "../../../../lib/cron/quadro";
+import { avisoDoCartao, DEF_CANAIS, DEF_EVENTOS, REF_SYNC, type Aviso, type EstadoRow } from "../../../../lib/cron/avisos";
 import { enviarEmail } from "../../../../lib/email";
 import { log } from "../../../../lib/log";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const maxDuration = 60;
 
-function bearerValido(req: Request): boolean {
-  const expected = process.env.CRON_SECRET;
-  if (!expected) return false;
-  const header = req.headers.get("authorization");
-  if (!header) return false;
-  const parts = header.split(/\s+/);
-  if (parts.length !== 2 || parts[0].toLowerCase() !== "bearer") return false;
-  return parts[1] === expected;
-}
+/**
+ * Cron de prazos (§10.3). De hora a hora. Para cada entidade ativa deriva o
+ * quadro e emite `prazo`, `bloqueio`, `concluido` e `falha_sync` para os cartões
+ * cujo estado mudou desde a última execução. O estado anterior vive na tabela
+ * `estado_notificacoes` (nunca em memória: na Vercel cada execução pode correr
+ * numa instância nova). É o único sítio onde um `acao_ref` é escrito por nós.
+ */
 
-type EstadoRow = {
-  acao_ref: string;
-  estado_anterior: string | null;
-};
-
-async function upsertEstado(
-  sb: ReturnType<typeof createClientService>,
-  entId: string,
-  ref: string,
-  estado: string,
-): Promise<void> {
-  try {
-    await sb
-      .from("estado_notificacoes")
-      .upsert(
-        {
-          entidade_id: entId,
-          acao_ref: ref,
-          estado_anterior: estado,
-          atualizado_em: new Date().toISOString(),
-        } as any,
-        { onConflict: "entidade_id,acao_ref" as any },
-      );
-  } catch {
-    // ignore
-  }
-}
-
-export async function POST(req: Request) {
-  if (!bearerValido(req)) {
-    return NextResponse.json(
-      { erro: "Autorização inválida" },
-      { status: 401 },
-    );
-  }
-
-  const chaveCifra = process.env.CHAVE_CIFRA;
-  if (!chaveCifra) {
+async function handler(req: Request) {
+  if (!cronAutorizado(req)) return respostaNaoAutorizado();
+  if (!process.env.CHAVE_CIFRA) {
     log.error("cron/prazos CHAVE_CIFRA vazia");
-    return NextResponse.json(
-      { erro: "CHAVE_CIFRA não definida" },
-      { status: 500 },
-    );
+    return NextResponse.json({ erro: "CHAVE_CIFRA não definida" }, { status: 500 });
   }
 
-  try {
-    const sb = createClientService();
+  const sb = createClientService();
+  const entRes = await sb.from("entidades").select("id, nome").eq("ativa", true);
+  if (entRes.error) {
+    log.error("cron/prazos entidades", { err: entRes.error.message });
+    return NextResponse.json({ erro: "Falha ao carregar entidades." }, { status: 500 });
+  }
+  const entidades = (entRes.data ?? []) as { id: string; nome: string }[];
+  const stats = { entidades: entidades.length, semFonte: 0, falhas: 0, avisos: 0, notificacoesApp: 0, emails: 0 };
 
-    let entidades: any[] = [];
+  for (const ent of entidades) {
     try {
-      const res = await sb
-        .from("entidades")
-        .select("id, nome, ativa")
-        .eq("ativa", true);
-      entidades = ((res as any).data as any[]) ?? [];
-    } catch (e) {
-      log.error("cron/prazos entidades load falhou", {
-        err: (e as Error).message,
-      });
-      return NextResponse.json(
-        { erro: "Falha ao carregar entidades." },
-        { status: 500 },
-      );
-    }
+      const antRes = await sb.from("estado_notificacoes").select("acao_ref, coluna, estado").eq("entidade_id", ent.id);
+      const anteriores = new Map<string, EstadoRow>(((antRes.data ?? []) as EstadoRow[]).map((r) => [r.acao_ref, r]));
+      const syncAnterior = anteriores.get(REF_SYNC);
 
-    const stats = {
-      entidades: entidades.length,
-      notificadas: 0,
-      erros: 0,
-      acoesVerificadas: 0,
-    };
+      const quadro = await quadroDaEntidade(sb, ent.id);
+      const avisos: Aviso[] = [];
+      const agora = new Date().toISOString();
+      const upserts: { entidade_id: string; acao_ref: string; coluna: string; estado: string; updated_at: string }[] = [];
 
-    for (const ent of entidades) {
-      try {
-        const entId = ent.id as string;
-        const entNome = ent.nome as string;
-
-        let cfg: {
-          fonte_tipo?: string;
-          fonte_credencial?: unknown;
-          fonte_base?: string | null;
-          mapa_campos?: unknown;
-          filtros?: unknown;
-          prazos?: unknown;
-        } | null = null;
-        try {
-          const res = await sb
-            .from("config_entidade")
-            .select(
-              "fonte_tipo,fonte_credencial,fonte_base,mapa_campos,filtros,prazos",
-            )
-            .eq("entidade_id", entId)
-            .maybeSingle();
-          cfg = (res as any).data as any ?? null;
-        } catch {
-          cfg = null;
-        }
-        if (!cfg || !cfg.fonte_base) continue;
-
-        let token: string;
-        try {
-          const maybeToken = await tokenDaCredencial(cfg.fonte_credencial);
-          if (!maybeToken) continue;
-          token = maybeToken;
-        } catch {
+      if (!quadro.ok) {
+        if (quadro.motivo === "sem_fonte") {
+          stats.semFonte += 1;
           continue;
         }
-        const airCfg: AirtableCfg = {
-          baseId: cfg.fonte_base,
-          token,
-          mapaCampos:
-            (cfg.mapa_campos as Record<string, string> | null) ?? undefined,
-          filtros:
-            (cfg.filtros as Record<string, unknown> | null) ?? undefined,
-        };
-        const fonte = criarAirtable(airCfg);
-
-        let acoes: Acao[];
-        let registos: Registo[];
-        try {
-          [acoes, registos] = await Promise.all([
-            fonte.obterAcoes(),
-            fonte.obterRegistos(),
-          ]);
-        } catch (e) {
-          log.error("cron/prazos airtable entidade falhou", {
-            err: (e as Error).message,
-            entidade_id: entId,
+        stats.falhas += 1;
+        log.warn("cron/prazos leitura falhou", { entidade_id: ent.id, motivo: quadro.motivo, err: quadro.erro });
+        // §10.1 falha_sync: só na transição ok → falha, para não repetir de hora a hora.
+        if (syncAnterior?.estado !== "falha") {
+          avisos.push({
+            evento: "falha_sync",
+            corpo:
+              quadro.motivo === "credencial"
+                ? "A credencial da base de dados está ilegível. Volta a introduzi-la em Definições, Ligação de dados."
+                : "A leitura da base de dados falhou. O quadro pode estar desatualizado até a ligação ser reposta.",
+            acaoRef: null,
           });
-          stats.erros += 1;
-          continue;
         }
-
-        const prazosCfg = cfg.prazos as Record<string, number> | null;
-        const derivado: Cartao[] = [];
-        for (const a of acoes) {
-          try {
-            derivado.push(derivar(a, registos, prazosCfg ?? undefined));
-          } catch {
-            // skip
-          }
+        upserts.push({ entidade_id: ent.id, acao_ref: REF_SYNC, coluna: "-", estado: "falha", updated_at: agora });
+      } else {
+        upserts.push({ entidade_id: ent.id, acao_ref: REF_SYNC, coluna: "-", estado: "ok", updated_at: agora });
+        const vistos = new Set<string>([REF_SYNC]);
+        for (const c of quadro.cartoes) {
+          vistos.add(c.id);
+          const aviso = avisoDoCartao(c, anteriores.get(c.id));
+          if (aviso) avisos.push(aviso);
+          upserts.push({ entidade_id: ent.id, acao_ref: c.id, coluna: String(c.col), estado: c.estado, updated_at: agora });
         }
-        stats.acoesVerificadas += derivado.length;
-
-        let users: any[] = [];
-        try {
-          const res = await sb
-            .from("utilizadores")
-            .select("id,nome,email,funcao")
-            .eq("entidade_id", entId);
-          users = ((res as any).data as any[]) ?? [];
-        } catch {
-          users = [];
+        // Linhas de ações que já não existem na fonte (§10.3).
+        const desaparecidas = [...anteriores.keys()].filter((ref) => !vistos.has(ref));
+        if (desaparecidas.length) {
+          const del = await sb.from("estado_notificacoes").delete().eq("entidade_id", ent.id).in("acao_ref", desaparecidas);
+          if (del.error) log.warn("cron/prazos limpar estado", { entidade_id: ent.id, err: del.error.message });
         }
-        if (!users.length) continue;
-
-        const userIds = users.map((u) => u.id);
-        let prefs: any[] = [];
-        try {
-          const res = await sb
-            .from("preferencias_notificacao")
-            .select("utilizador_id,eventos,canais")
-            .in("utilizador_id", userIds);
-          prefs = ((res as any).data as any[]) ?? [];
-        } catch {
-          prefs = [];
-        }
-        const prefsPorId = new Map<string, any>(
-          prefs.map((p) => [p.utilizador_id, p]),
-        );
-
-        const destinatarios = users.filter((u: any) => {
-          const p = prefsPorId.get(u.id);
-          const canais = (p?.canais as Record<string, unknown>) ?? {};
-          return canais.email === true;
-        });
-        if (!destinatarios.length) continue;
-
-        let anteriores: EstadoRow[] = [];
-        try {
-          const res = await sb
-            .from("estado_notificacoes")
-            .select("acao_ref,estado_anterior")
-            .eq("entidade_id", entId);
-          anteriores = ((res as any).data as EstadoRow[]) ?? [];
-        } catch {
-          anteriores = [];
-        }
-        const anteriorMap = new Map<string, string | null>(
-          anteriores.map((r) => [r.acao_ref, r.estado_anterior]),
-        );
-
-        const transicoes: {
-          acao: Cartao;
-          evento: "late" | "bloqueada" | "today";
-        }[] = [];
-
-        for (const c of derivado) {
-          const ref = `${c.id}` as string;
-          let estadoNovo: string;
-          if (c.prazo === "bloqueada") estadoNovo = "bloqueada";
-          else if (c.prazo === "late") estadoNovo = "late";
-          else if (c.prazo === "today") estadoNovo = "today";
-          else estadoNovo = c.prazo ?? "ok";
-
-          const anterior = anteriorMap.get(ref);
-          if (anterior === estadoNovo) {
-            void upsertEstado(sb, entId, ref, estadoNovo);
-            continue;
-          }
-
-          if (
-            estadoNovo === "late" ||
-            estadoNovo === "bloqueada" ||
-            estadoNovo === "today"
-          ) {
-            transicoes.push({
-              acao: c,
-              evento: estadoNovo as "late" | "bloqueada" | "today",
-            });
-          }
-
-          void upsertEstado(sb, entId, ref, estadoNovo);
-        }
-
-        if (!transicoes.length) continue;
-
-        const totalLate = transicoes.filter(
-          (t) => t.evento === "late",
-        ).length;
-        const totalBloq = transicoes.filter(
-          (t) => t.evento === "bloqueada",
-        ).length;
-        const totalToday = transicoes.filter(
-          (t) => t.evento === "today",
-        ).length;
-
-        const linhas = transicoes
-          .slice(0, 20)
-          .map((t) => {
-            const emoji =
-              t.evento === "bloqueada"
-                ? "🔒"
-                : t.evento === "late"
-                ? "⚠️"
-                : "📍";
-            const faseNome =
-              t.evento === "bloqueada"
-                ? "Bloqueada"
-                : t.evento === "late"
-                ? "Atrasada"
-                : "Hoje";
-            const acaoNome = (t.acao.acao as any)?.nome ?? t.acao.id;
-            const formador = (t.acao.acao as any)?.formadorNome;
-            return `<li><strong>${emoji} ${faseNome}</strong>: ${acaoNome}${
-              formador ? " · " + String(formador) : ""
-            }</li>`;
-          })
-          .join("\n");
-
-        const html = `
-          <h1>Prazos — ${entNome}</h1>
-          <p>Novidades desde o último envio:</p>
-          <ul>
-            <li><strong>${totalLate}</strong> ações em atraso</li>
-            <li><strong>${totalBloq}</strong> ações bloqueadas</li>
-            <li><strong>${totalToday}</strong> ações com prazo hoje</li>
-          </ul>
-          <h2>Detalhe</h2>
-          <ul>${linhas}</ul>
-          ${
-            transicoes.length > 20
-              ? `<p>… e mais ${
-                  transicoes.length - 20
-                } ações. Ver no Quadro.</p>`
-              : ""
-          }
-          <p style="color:#888;font-size:12px">Enviado automaticamente pelo cron de prazos.</p>
-        `.trim();
-
-        for (const u of destinatarios) {
-          const para = (u as any).email as string;
-          try {
-            await enviarEmail({
-              para,
-              assunto: `Fluxo · prazos (${entNome}) — ${totalLate} atraso, ${totalBloq} bloqueio, ${totalToday} hoje`,
-              html,
-            });
-          } catch (e) {
-            log.error("cron/prazos enviar email falhou", {
-              err: (e as any)?.message,
-              para,
-              entidade_id: entId,
-            });
-          }
-          stats.notificadas += 1;
-        }
-      } catch (e) {
-        log.error("cron/prazos entidade loop erro", {
-          err: (e as Error).message,
-          entidade_id: (ent as any)?.id,
-          entidade_nome: (ent as any)?.nome,
-        });
-        stats.erros += 1;
       }
-    }
 
-    log.info("cron/prazos concluído", stats);
-    return NextResponse.json({ ok: true, stats });
-  } catch (e) {
-    log.error("cron/prazos erro inesperado", {
-      err: (e as Error).message,
-    });
-    return NextResponse.json({ erro: "Erro interno" }, { status: 500 });
+      const up = await (sb as any).from("estado_notificacoes").upsert(upserts, { onConflict: "entidade_id,acao_ref" });
+      if (up.error) log.error("cron/prazos guardar estado", { entidade_id: ent.id, err: up.error.message });
+
+      if (!avisos.length) continue;
+      stats.avisos += avisos.length;
+
+      const usersRes = await sb.from("utilizadores").select("id, nome, email").eq("entidade_id", ent.id);
+      const users = (usersRes.data ?? []) as { id: string; nome: string; email: string }[];
+      if (!users.length) continue;
+      const prefsRes = await sb
+        .from("preferencias_notificacao")
+        .select("utilizador_id, eventos, canais")
+        .in("utilizador_id", users.map((u) => u.id));
+      const prefs = new Map<string, { eventos: Record<string, boolean>; canais: Record<string, boolean> }>();
+      for (const p of (prefsRes.data ?? []) as { utilizador_id: string; eventos: unknown; canais: unknown }[]) {
+        prefs.set(p.utilizador_id, {
+          eventos: { ...DEF_EVENTOS, ...((p.eventos as Record<string, boolean>) ?? {}) },
+          canais: { ...DEF_CANAIS, ...((p.canais as Record<string, boolean>) ?? {}) },
+        });
+      }
+
+      const linhasApp: { entidade_id: string; destinatario_id: string; tipo: string; corpo: string; acao_ref: string | null }[] = [];
+      for (const u of users) {
+        const p = prefs.get(u.id) ?? { eventos: DEF_EVENTOS, canais: DEF_CANAIS };
+        const meus = avisos.filter((a) => p.eventos[a.evento]);
+        if (!meus.length) continue;
+        if (p.canais.app) {
+          for (const a of meus) linhasApp.push({ entidade_id: ent.id, destinatario_id: u.id, tipo: a.evento, corpo: a.corpo, acao_ref: a.acaoRef });
+        }
+        if (p.canais.email && u.email) {
+          const itens = meus.map((a) => `<li style="margin:0 0 8px">${escaparHtml(a.corpo)}</li>`).join("");
+          const html =
+            `<p>Olá ${escaparHtml(u.nome || "")},</p>` +
+            `<p>Há novidades no quadro de ${escaparHtml(ent.nome)}:</p>` +
+            `<ul style="padding-left:18px">${itens}</ul>` +
+            `<p>Vê o detalhe no Quadro do Fluxo.</p>` +
+            `<p style="color:#8d8d8d;font-size:12px;margin-top:24px">Enviado por Fluxo. Podes mudar o que recebes em Definições, Notificações.</p>`;
+          const r = await enviarEmail({
+            para: u.email,
+            assunto: `Fluxo · ${meus.length === 1 ? "1 novidade" : `${meus.length} novidades`} no quadro de ${ent.nome}`,
+            html,
+          });
+          if (r.ok) stats.emails += 1;
+        }
+      }
+      if (linhasApp.length) {
+        const ins = await (sb as any).from("notificacoes").insert(linhasApp);
+        if (ins.error) log.error("cron/prazos notificacoes", { entidade_id: ent.id, err: ins.error.message });
+        else stats.notificacoesApp += linhasApp.length;
+      }
+    } catch (e) {
+      stats.falhas += 1;
+      log.error("cron/prazos entidade", { entidade_id: ent.id, err: (e as Error).message });
+    }
   }
+
+  log.info("cron/prazos concluído", stats);
+  return NextResponse.json({ ok: true, stats });
 }
+
+export const GET = handler;
+export const POST = handler;
