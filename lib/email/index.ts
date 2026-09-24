@@ -34,11 +34,17 @@ function smtp(): Transporter | null {
   if (!transporteSmtp) {
     const port = Number(process.env.SMTP_PORT || 587);
     const secure = process.env.SMTP_SECURE ? process.env.SMTP_SECURE === "true" : port === 465;
+    const host = process.env.SMTP_HOST?.trim() || "smtp.gmail.com";
+    // As palavras-passe de aplicação do Google são mostradas com espaços; o Gmail ignora-os.
+    const passLimpa = /gmail|google/i.test(host) ? pass.replace(/\s+/g, "") : pass;
     transporteSmtp = nodemailer.createTransport({
-      host: process.env.SMTP_HOST?.trim() || "smtp.gmail.com",
+      host,
       port,
       secure,
-      auth: { user, pass },
+      auth: { user, pass: passLimpa },
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 15_000,
     });
   }
   return transporteSmtp;
@@ -64,7 +70,25 @@ function lista(v: string | string[] | undefined): string[] | undefined {
   return Array.isArray(v) ? v : [v];
 }
 
-export async function enviarEmail(args: EnviarArgs): Promise<{ ok: boolean; id?: string }> {
+export type Transporte = "smtp" | "resend" | "nenhum";
+
+export interface ResultadoEnvio {
+  ok: boolean;
+  id?: string;
+  transporte: Transporte;
+  /** mensagem de erro do transporte, para diagnóstico (nunca inclui credenciais) */
+  erro?: string;
+  remetente: string;
+}
+
+/** Que transporte está configurado, sem enviar nada. */
+export function transporteConfigurado(): Transporte {
+  if (process.env.SMTP_USER?.trim() && process.env.SMTP_PASS) return "smtp";
+  if (process.env.RESEND_API_KEY) return "resend";
+  return "nenhum";
+}
+
+export async function enviarEmail(args: EnviarArgs): Promise<ResultadoEnvio> {
   const de = remetente(args);
   const texto = args.texto ?? htmlParaTexto(args.html);
 
@@ -83,12 +107,13 @@ export async function enviarEmail(args: EnviarArgs): Promise<{ ok: boolean; id?:
       const aceites = Array.isArray(info.accepted) ? info.accepted.length : 0;
       if (!aceites) {
         log.warn("smtp sem destinatários aceites", { assunto: args.assunto, resposta: info.response });
-        return { ok: false };
+        return { ok: false, transporte: "smtp", erro: `SMTP não aceitou o destinatário: ${String(info.response ?? "")}`, remetente: de };
       }
-      return { ok: true, id: info.messageId ? String(info.messageId) : undefined };
+      return { ok: true, id: info.messageId ? String(info.messageId) : undefined, transporte: "smtp", remetente: de };
     } catch (e) {
-      log.error("smtp erro", { err: (e as Error).message, assunto: args.assunto });
-      return { ok: false };
+      const msg = (e as Error).message;
+      log.error("smtp erro", { err: msg, assunto: args.assunto });
+      return { ok: false, transporte: "smtp", erro: msg, remetente: de };
     }
   }
 
@@ -98,7 +123,13 @@ export async function enviarEmail(args: EnviarArgs): Promise<{ ok: boolean; id?:
       para: args.para,
       assunto: args.assunto,
     });
-    return { ok: true, id: "DEV-SEM-TRANSPORTE" };
+    return {
+      ok: process.env.NODE_ENV !== "production",
+      id: "DEV-SEM-TRANSPORTE",
+      transporte: "nenhum",
+      erro: "Sem transporte configurado: define SMTP_USER e SMTP_PASS (ou RESEND_API_KEY) e volta a fazer deploy.",
+      remetente: de,
+    };
   }
 
   try {
@@ -114,12 +145,13 @@ export async function enviarEmail(args: EnviarArgs): Promise<{ ok: boolean; id?:
     const resultado = await (cliente.emails.send as any)(argsEnvio);
     if ((resultado as any).error) {
       log.error("resend erro", { err: (resultado as any).error });
-      return { ok: false };
+      const err = (resultado as any).error;
+      return { ok: false, transporte: "resend", erro: typeof err?.message === "string" ? err.message : JSON.stringify(err), remetente: de };
     }
-    return { ok: true, id: resultado.data?.id ?? undefined };
+    return { ok: true, id: resultado.data?.id ?? undefined, transporte: "resend", remetente: de };
   } catch (e) {
     log.error("resend excecao", { err: e });
-    return { ok: false };
+    return { ok: false, transporte: "resend", erro: (e as Error).message, remetente: de };
   }
 }
 
