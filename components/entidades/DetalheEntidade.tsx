@@ -37,16 +37,22 @@ export function DetalheEntidade({ e, onClose, onMudou }: { e: EntidadeLinha; onC
     await onMudou();
   }
 
+  const [ligacaoConvite, setLigacaoConvite] = useState<string | null>(null);
+
   async function convidar() {
     const v = email.trim().toLowerCase();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v)) { toast("Email inválido"); return; }
     setATrabalhar(true);
     try {
       const r = await fetch("/api/admin/convites", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email: v, funcao: "admin", entidade_id: e.id }) });
-      const j = (await r.json().catch(() => ({}))) as { erro?: string };
+      const j = (await r.json().catch(() => ({}))) as { erro?: string; emailEnviado?: boolean; link?: string };
       if (!r.ok) throw new Error(j.erro || `Erro ${r.status}`);
       setEmail("");
-      toast(`Convite criado para ${v}`);
+      if (j.emailEnviado) toast(`Convite enviado para ${v}`);
+      else {
+        toast("Convite criado, mas o email não foi enviado");
+        if (j.link) setLigacaoConvite(j.link);
+      }
     } catch (err) {
       toast((err as Error).message);
     } finally {
@@ -140,6 +146,12 @@ export function DetalheEntidade({ e, onClose, onMudou }: { e: EntidadeLinha; onC
             <input id="ent-conv" placeholder="email@entidade.pt" value={email} onChange={(ev) => setEmail(ev.target.value)} onKeyDown={(ev) => { if (ev.key === "Enter") void convidar(); }} />
             <button type="button" className="btn sm" disabled={aTrabalhar} onClick={() => void convidar()}>Convidar</button>
           </div>
+          {ligacaoConvite ? (
+            <div className="note" style={{ marginTop: 10 }}>
+              <span className="note-t">Email não enviado</span>
+              <span className="note-s">Partilha esta ligação com a pessoa (válida 7 dias): <code style={{ wordBreak: "break-all" }}>{ligacaoConvite}</code></span>
+            </div>
+          ) : null}
           <p className="fld-h">Recebe um link para definir palavra-passe, válido 7 dias. Entra como administrador da entidade.</p>
         </div>
       </div>

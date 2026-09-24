@@ -1,11 +1,28 @@
 import { NextResponse } from "next/server";
 import { createClientServer } from "../../../../lib/supabase/server";
 import { log } from "../../../../lib/log";
+import { enviarEmailConvite } from "../../../../lib/convites";
 
 const FUNCOES_VALIDAS = new Set(["admin", "gestor", "leitura"]);
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+
+async function contextoEmail(supabase: any, entidadeId: string, userId: string): Promise<{ entidadeNome: string; convidadoPor: string | null }> {
+  let entidadeNome = "a vossa entidade";
+  let convidadoPor: string | null = null;
+  try {
+    const [ent, eu] = await Promise.all([
+      supabase.from("entidades").select("nome").eq("id", entidadeId).maybeSingle(),
+      supabase.from("utilizadores").select("nome").eq("id", userId).maybeSingle(),
+    ]);
+    entidadeNome = (ent.data as { nome?: string } | null)?.nome ?? entidadeNome;
+    convidadoPor = (eu.data as { nome?: string } | null)?.nome ?? null;
+  } catch {
+    /* fica o texto genérico */
+  }
+  return { entidadeNome, convidadoPor };
+}
 
 export async function POST(req: Request) {
   try {
@@ -101,29 +118,36 @@ export async function POST(req: Request) {
       );
     }
 
-    let existente: { usado_em: unknown; expira_em: string } | null = null;
+    // Convite ativo para o mesmo email: reenvia o email com o mesmo link em
+    // vez de recusar. Convidar duas vezes é a forma natural de "reenviar".
+    let existente: { id: string; usado_em: unknown; expira_em: string; token: string; funcao: string } | null = null;
     try {
       const res = await supabase
         .from("convites")
-        .select("id, usado_em, expira_em")
+        .select("id, usado_em, expira_em, token, funcao")
         .eq("entidade_id", entidadeId)
         .eq("email", email)
+        .is("usado_em", null)
+        .gt("expira_em", new Date().toISOString())
+        .order("expira_em", { ascending: false })
+        .limit(1)
         .maybeSingle();
       existente = (res.data as any) ?? null;
     } catch {
       existente = null;
     }
-    if (
-      existente &&
-      !(existente as any).usado_em &&
-      new Date(existente.expira_em) > new Date()
-    ) {
+    if (existente) {
+      const ctx = await contextoEmail(supabase, entidadeId, user.id);
+      const envio = await enviarEmailConvite({ para: email, token: existente.token, entidadeNome: ctx.entidadeNome, funcao: existente.funcao, convidadoPor: ctx.convidadoPor });
+      if (!envio.ok) log.warn("convite reenvio email não enviado", { convite_id: existente.id, entidade_id: entidadeId });
       return NextResponse.json(
         {
-          erro:
-            "Já existe um convite ativo para este email nesta entidade.",
+          convite: { id: existente.id, email, funcao: existente.funcao, entidade_id: entidadeId, expira_em: existente.expira_em },
+          emailEnviado: envio.ok,
+          link: envio.link,
+          reenviado: true,
         },
-        { status: 409 },
+        { status: 200 },
       );
     }
 
@@ -174,6 +198,12 @@ export async function POST(req: Request) {
       criado_por: user.id,
     });
 
+    // Email com o link de uso único (§15, §16). Quem convida vê o link na
+    // resposta para o poder partilhar se o email não chegar.
+    const ctx = await contextoEmail(supabase, entidadeId, user.id);
+    const envio = await enviarEmailConvite({ para: email, token: convite.token, entidadeNome: ctx.entidadeNome, funcao, convidadoPor: ctx.convidadoPor });
+    if (!envio.ok) log.warn("convite email não enviado", { convite_id: convite.id, entidade_id: entidadeId });
+
     return NextResponse.json(
       {
         convite: {
@@ -182,11 +212,9 @@ export async function POST(req: Request) {
           funcao: convite.funcao,
           entidade_id: convite.entidade_id,
           expira_em: convite.expira_em,
-          token: convite.token,
         },
-        nota:
-          "Envio de email pendente de integração Resend. Por enquanto partilhe " +
-          "manualmente o link /definir?convite_token=<token> com o utilizador.",
+        emailEnviado: envio.ok,
+        link: envio.link,
       },
       { status: 201 },
     );

@@ -33,8 +33,10 @@ export function NovaEntidade({ onClose, onCriada }: { onClose: () => void; onCri
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: e, funcao: "admin", entidade_id: j.entidade.id }),
       });
+      const cj = (await c.json().catch(() => ({}))) as { emailEnviado?: boolean };
       if (!c.ok) toast("Entidade criada, mas o convite falhou. Volta a convidar a partir do detalhe.");
-      else toast(`${nome.trim()} criada. Convite enviado.`);
+      else if (cj.emailEnviado) toast(`${nome.trim()} criada. Convite enviado para ${e}.`);
+      else toast(`${nome.trim()} criada. O email do convite não foi enviado: volta a convidar a partir do detalhe para obteres o link.`);
       onCriada();
     } catch (err) {
       setErro((err as Error).message);
