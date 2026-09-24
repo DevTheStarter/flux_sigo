@@ -36,11 +36,14 @@ export function Equipa() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: e, funcao, entidade_id: s.entidadeId }),
       });
-      const j = (await r.json().catch(() => ({}))) as { erro?: string; convite?: { token: string }; nota?: string };
+      const j = (await r.json().catch(() => ({}))) as { erro?: string; emailEnviado?: boolean; link?: string };
       if (!r.ok) throw new Error(j.erro || `Erro ${r.status}`);
       setEmail("");
-      toast(`Convite criado para ${e}`);
-      if (j.convite?.token && j.nota) setLigacao(`${window.location.origin}/definir?token=${encodeURIComponent(j.convite.token)}`);
+      if (j.emailEnviado) toast(`Convite enviado para ${e}`);
+      else {
+        toast(`Convite criado, mas o email não foi enviado`);
+        if (j.link) setLigacao(j.link);
+      }
     } catch (err) {
       toast((err as Error).message);
     } finally {

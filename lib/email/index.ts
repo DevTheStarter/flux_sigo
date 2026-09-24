@@ -28,7 +28,7 @@ export async function enviarEmail(args: EnviarArgs): Promise<{ ok: boolean; id?:
   }
 
   try {
-    const de = args.origem ?? `Fluxo <fluxo@${vercelDominio()}>`;
+    const de = args.origem ?? process.env.EMAIL_DE?.trim() ?? `Fluxo <fluxo@${vercelDominio()}>`;
     const texto = args.texto ?? htmlParaTexto(args.html);
     const argsEnvio: Record<string, unknown> = {
       from: de,
@@ -51,6 +51,11 @@ export async function enviarEmail(args: EnviarArgs): Promise<{ ok: boolean; id?:
   }
 }
 
+/**
+ * Remetente por defeito quando EMAIL_DE não está definido. O Resend só aceita
+ * domínios verificados, por isso em produção EMAIL_DE deve ser algo como
+ * "Fluxo <fluxo@thestarter.io>" com o domínio verificado no Resend.
+ */
 function vercelDominio(): string {
   if (process.env.VERCEL_URL) {
     try {

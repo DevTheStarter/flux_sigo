@@ -37,5 +37,7 @@ export async function GET(req: Request) {
   }
 
   cookieStore; // manter referência viva
-  return NextResponse.redirect(`${origin}${next}`);
+  // Depois de um link de recuperação, /definir precisa de saber que já há sessão.
+  const destino = next === "/definir" ? "/definir?sessao=1" : next;
+  return NextResponse.redirect(`${origin}${destino}`);
 }
