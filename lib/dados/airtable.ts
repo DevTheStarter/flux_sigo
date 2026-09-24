@@ -392,6 +392,34 @@ function escapeAirtable(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/'/g, "\\'");
 }
 
+/**
+ * Id da tabela (tbl…) para os links dos registos: o URL do Airtable precisa do
+ * id, não do nome. Se a configuração já traz o id, usa-o; senão tenta a Meta
+ * API (só nomes e ids de tabelas, sem dados); se o token não tiver esse
+ * âmbito, fica sem id e o link usa só a base e o registo.
+ */
+async function idDaTabela(token: string, baseId: string, tabela: string): Promise<string | null> {
+  if (/^tbl[A-Za-z0-9]{14}$/.test(tabela)) return tabela;
+  const k = `at:${baseId}:tbl:${tabela}`;
+  const emCache = cacheGet<{ id: string | null }>(k);
+  if (emCache) return emCache.id;
+  let id: string | null = null;
+  try {
+    const res = await fetch(`https://api.airtable.com/v0/meta/bases/${encodeURIComponent(baseId)}/tables`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+    });
+    if (res.ok) {
+      const j = (await res.json()) as { tables?: { id: string; name: string }[] };
+      id = j.tables?.find((t) => t.name === tabela)?.id ?? null;
+    }
+  } catch {
+    id = null;
+  }
+  cacheSet(k, { id });
+  return id;
+}
+
 export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
   const mapa = cfg.mapaCampos ?? {};
   const baseId = cfg.baseId;
@@ -402,7 +430,7 @@ export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
 
   const cacheKey = `at:${baseId}`;
 
-  function converterAcaoLocal(linha: { fields: Record<string, unknown>; id: string }): Acao {
+  function converterAcaoLocal(linha: { fields: Record<string, unknown>; id: string }, tblId: string | null): Acao {
     const raw = linha.fields;
     const { ours } = mapBack(linha, mapa, CAMPOS_NOSSOS_ACAO);
     const id = linha.id;
@@ -420,7 +448,7 @@ export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
       ano: ano || new Date().getFullYear(),
       formandos: contarFormandos(raw, mapa),
       temAvaliacoes: temAvaliacoesField(raw, mapa),
-      urlOrigem: `https://airtable.com/${urlB64(baseId)}/${urlB64(tblAcoes)}/${id}`,
+      urlOrigem: tblId ? `https://airtable.com/${baseId}/${tblId}/${id}` : `https://airtable.com/${baseId}/${id}`,
     };
   }
 
@@ -439,10 +467,11 @@ export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
       }
       const qsAcoes = [camposQs, ...extras].filter(Boolean).join("&");
       const recs = await listarTodos(token, baseId, tblAcoes, qsAcoes, filtros, false, mapa);
+      const tblId = await idDaTabela(token, baseId, tblAcoes);
       const acoes: Acao[] = [];
       const acaoNameId = new Map<string, string>();
       for (const rec of recs) {
-        const a = converterAcaoLocal(rec);
+        const a = converterAcaoLocal(rec, tblId);
         acoes.push(a);
         acaoNameId.set(a.nome, a.id);
       }
