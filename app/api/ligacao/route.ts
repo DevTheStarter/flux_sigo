@@ -128,7 +128,15 @@ export async function POST(req: Request) {
   };
   const row: Record<string, unknown> = {};
   if ("fonteTipo" in body) row.fonte_tipo = texto("fonteTipo") ?? "airtable";
-  if ("fonteBase" in body) row.fonte_base = texto("fonteBase");
+  if ("fonteBase" in body) {
+    // Aceita o id ou um URL do Airtable colado inteiro; fica só o id da base.
+    const bruto = texto("fonteBase");
+    const m = bruto ? /app[A-Za-z0-9]{14}/.exec(bruto) : null;
+    if (bruto && !m) {
+      return NextResponse.json({ erro: "Identificador da base inválido. Deve começar por app e ter 17 caracteres, por exemplo appN5zpGoVaDyFy4W." }, { status: 400 });
+    }
+    row.fonte_base = m ? m[0] : null;
+  }
   if ("tabelaAcoes" in body) row.fonte_tabela_acoes = texto("tabelaAcoes");
   if ("tabelaRegistos" in body) row.fonte_tabela_registos = texto("tabelaRegistos");
   if ("tabelaFormandos" in body) row.fonte_tabela_formandos = texto("tabelaFormandos");
@@ -141,8 +149,13 @@ export async function POST(req: Request) {
     try {
       row.fonte_credencial = await encriptar(token);
     } catch (e) {
-      log.error("ligacao cifra falhou", { err: (e as Error).message });
-      return NextResponse.json({ erro: "Não foi possível guardar a credencial." }, { status: 500 });
+      const msg = (e as Error).message;
+      log.error("ligacao cifra falhou", { err: msg });
+      const semChave = /CHAVE_CIFRA/.test(msg);
+      return NextResponse.json(
+        { erro: semChave ? "O servidor não tem a chave de cifra configurada (CHAVE_CIFRA). Fala com a TheStarter." : "Não foi possível cifrar a credencial." },
+        { status: 500 },
+      );
     }
   }
   row.atualizado_em = new Date().toISOString();
@@ -152,7 +165,7 @@ export async function POST(req: Request) {
     .upsert({ entidade_id: me.entidade_id, ...row }, { onConflict: "entidade_id" });
   if (r.error) {
     log.error("ligacao guardar falhou", { err: r.error.message, user_id: user.id });
-    return NextResponse.json({ erro: "Não foi possível guardar." }, { status: 500 });
+    return NextResponse.json({ erro: `Não foi possível guardar: ${r.error.message}` }, { status: 500 });
   }
   const cfgRes = await supabase.from("config_entidade").select("fonte_base").eq("entidade_id", me.entidade_id).maybeSingle();
   const base = (cfgRes.data as { fonte_base?: string | null } | null)?.fonte_base;
