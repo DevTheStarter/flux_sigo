@@ -151,7 +151,7 @@ export function Ligacao() {
           <div className="fld"><label className="fld-l" htmlFor="lig-token">Token só de leitura</label><input id="lig-token" type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder={estado?.configurada ? "•••••••• (guardado; escreve para substituir)" : "pat…"} /></div>
           <div style={{ display: "flex", gap: 10 }}>
             <div className="fld" style={{ flex: 1 }}><label className="fld-l" htmlFor="lig-ta">Tabela de ações</label><input id="lig-ta" value={tblAcoes} onChange={(e) => setTblAcoes(e.target.value)} placeholder="Ações de formação" /></div>
-            <div className="fld" style={{ flex: 1 }}><label className="fld-l" htmlFor="lig-tl">Tabela de registos</label><input id="lig-tl" value={tblLogs} onChange={(e) => setTblLogs(e.target.value)} placeholder="Logs de execução" /></div>
+            <div className="fld" style={{ flex: 1 }}><label className="fld-l" htmlFor="lig-tl">Tabela de registos</label><input id="lig-tl" value={tblLogs} onChange={(e) => setTblLogs(e.target.value)} placeholder="Logs de execução" /><p className="fld-h">Nome exato da tabela no Airtable, por exemplo SIGO Logs.</p></div>
           </div>
           <div className="fld"><label className="fld-l" htmlFor="lig-tf">Tabela de formandos (só para verificar que não está acessível)</label><input id="lig-tf" value={tblForm} onChange={(e) => setTblForm(e.target.value)} placeholder="Formandos" /><p className="fld-h">Nunca é lida. Serve para confirmar que a credencial não lhe chega.</p></div>
           <button type="button" className="btn sm" disabled={aGuardar || !base.trim()} onClick={() => void guardar()}>Guardar ligação</button>
@@ -189,7 +189,7 @@ export function Ligacao() {
             </div>
           ))}
           <p className="fld-l" style={{ marginTop: 18 }}>Filtros</p>
-          <p className="fld-h" style={{ marginTop: 0 }}>Que ações de formação entram no quadro. Vazio não filtra. Por defeito: Formato igual a {FILTROS_PADRAO.formatoIgual} e Estado diferente de {FILTROS_PADRAO.estadoDiferente}.</p>
+          <p className="fld-h" style={{ marginTop: 0 }}>Que ações de formação entram no quadro. Vazio não filtra. Recomendado: Estado diferente de {FILTROS_PADRAO.estadoDiferente}.</p>
           <div style={{ display: "flex", gap: 10 }}>
             <div className="fld" style={{ flex: 1 }}><label className="fld-l" htmlFor="lig-f-formato">Formato igual a</label><input id="lig-f-formato" value={filtros.formatoIgual} onChange={(e) => setFiltros({ ...filtros, formatoIgual: e.target.value })} placeholder="sem filtro" /></div>
             <div className="fld" style={{ flex: 1 }}><label className="fld-l" htmlFor="lig-f-estado">Estado diferente de</label><input id="lig-f-estado" value={filtros.estadoDiferente} onChange={(e) => setFiltros({ ...filtros, estadoDiferente: e.target.value })} placeholder="sem filtro" /></div>

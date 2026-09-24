@@ -58,7 +58,12 @@ export interface FiltrosSimples {
   estadoDiferente: string;
 }
 
-export const FILTROS_PADRAO: FiltrosSimples = { formatoIgual: "PT", estadoDiferente: "Descontinuado" };
+/**
+ * Por defeito só Estado ≠ Descontinuado. A spec (§7.3) previa também Formato = PT,
+ * mas na base de referência "Formato" é o tipo de curso (Curso, Imersão…), não o
+ * país; um filtro por PT esvaziaria o quadro. Cada entidade define o seu.
+ */
+export const FILTROS_PADRAO: FiltrosSimples = { formatoIgual: "", estadoDiferente: "Descontinuado" };
 
 export function filtrosParaSimples(raw: unknown): FiltrosSimples {
   const out: FiltrosSimples = { formatoIgual: "", estadoDiferente: "" };
