@@ -16,3 +16,27 @@ describe("adaptador Airtable: campo inexistente (422 UNKNOWN_FIELD_NAME)", () =>
     expect(campoDesconhecido(new Error("boom"))).toBeNull();
   });
 });
+
+describe("adaptador Airtable: registos ligados à ação por id", () => {
+  it("um registo cujo campo de ligação traz o id do registo da ação é atribuído a essa ação", async () => {
+    const { criarAirtable } = await import("../lib/dados/airtable");
+    const chamadas: string[] = [];
+    const fetchFalso = async (url: string) => {
+      chamadas.push(url);
+      const corpo = url.includes("Logs")
+        ? { records: [{ id: "recLog1AAAAAAAAAA", createdTime: "2026-07-29T23:22:43.000Z", fields: { "Ação de Formação": ["recAcao1AAAAAAAAA"], Flow: "Flow 0 (Data Collection)", Status: "Success", Details: "ok" } }] }
+        : { records: [{ id: "recAcao1AAAAAAAAA", fields: { Name: "Ação X", "Código Curso": "C1", "Start date": "2026-06-29", "End Date": "2026-06-30", Estado: "Ativo", Formato: "Curso", Ano: "2026" } }] };
+      return new Response(JSON.stringify(corpo), { status: 200, headers: { "Content-Type": "application/json" } });
+    };
+    const original = globalThis.fetch;
+    globalThis.fetch = fetchFalso as unknown as typeof fetch;
+    try {
+      const fonte = criarAirtable({ baseId: "appTESTE000000000", token: "t", tabelaAcoes: "Acoes", tabelaRegistos: "Logs" });
+      const registos = await fonte.obterRegistos();
+      expect(registos).toHaveLength(1);
+      expect(registos[0]).toMatchObject({ acaoId: "recAcao1AAAAAAAAA", flow: 0, estado: "success", data: "2026-07-29" });
+    } finally {
+      globalThis.fetch = original;
+    }
+  });
+});
