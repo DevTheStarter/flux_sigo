@@ -5,6 +5,7 @@ import { useSessao } from "../../lib/cliente/sessao";
 import { relativo, diasDesde } from "../../lib/cliente/datas";
 import { DetalheEntidade } from "./DetalheEntidade";
 import { NovaEntidade } from "./NovaEntidade";
+import { useToast } from "../ui/Toast";
 
 export interface EntidadeLinha {
   id: string;
@@ -33,6 +34,15 @@ export function pillSuporte(e: EntidadeLinha): string {
 }
 
 /** Entidades (§15). Só staff. */
+interface TesteEmail {
+  ok: boolean;
+  para: string;
+  transporte: string;
+  remetente: string;
+  erro: string | null;
+  configurado: { urlBase: string; SMTP_USER: boolean; SMTP_PASS: boolean; RESEND_API_KEY: boolean; EMAIL_DE: string | null; NEXT_PUBLIC_SITE_URL: string | null };
+}
+
 export function Entidades() {
   const s = useSessao();
   const [lista, setLista] = useState<EntidadeLinha[]>([]);
@@ -56,6 +66,24 @@ export function Entidades() {
   }, []);
 
   useEffect(() => { void carregar(); }, [carregar]);
+
+  const toast = useToast();
+  const [aTestarEmail, setATestarEmail] = useState(false);
+  const [testeEmail, setTesteEmail] = useState<TesteEmail | null>(null);
+  async function testarEmail() {
+    setATestarEmail(true);
+    setTesteEmail(null);
+    try {
+      const r = await fetch("/api/admin/email-teste", { method: "POST" });
+      const j = (await r.json().catch(() => ({}))) as TesteEmail & { erro?: string };
+      if (!r.ok && !j.configurado) throw new Error(j.erro || `Erro ${r.status}`);
+      setTesteEmail(j);
+    } catch (err) {
+      toast((err as Error).message);
+    } finally {
+      setATestarEmail(false);
+    }
+  }
 
   if (s.funcao !== "staff") {
     return <section className="page"><div className="ph"><div><h1>Entidades</h1></div></div><p className="empty">Esta secção é da TheStarter.</p></section>;
@@ -95,7 +123,20 @@ export function Entidades() {
           </button>
         );
       })}
-      <button type="button" className="btn sec sm" style={{ marginTop: 20 }} onClick={() => setNova(true)}>Adicionar entidade</button>
+      <div className="row2" style={{ marginTop: 20 }}>
+        <button type="button" className="btn sec sm" onClick={() => setNova(true)}>Adicionar entidade</button>
+        <button type="button" className="btn sec sm" disabled={aTestarEmail} onClick={() => void testarEmail()}>Testar email</button>
+      </div>
+      {testeEmail ? (
+        <div className={"note" + (testeEmail.ok ? " neutro" : "")} style={{ marginTop: 12 }}>
+          <span className={testeEmail.ok ? "note-t2" : "note-t"}>{testeEmail.ok ? `Email de teste enviado para ${testeEmail.para}` : "O email de teste não saiu"}</span>
+          <span className="note-s">
+            Transporte: {testeEmail.transporte} · remetente: {testeEmail.remetente} · aplicação: {testeEmail.configurado.urlBase}
+            {testeEmail.erro ? <><br />Erro: <code style={{ wordBreak: "break-all" }}>{testeEmail.erro}</code></> : null}
+            <br />Variáveis: SMTP_USER {testeEmail.configurado.SMTP_USER ? "definida" : "em falta"} · SMTP_PASS {testeEmail.configurado.SMTP_PASS ? "definida" : "em falta"} · RESEND_API_KEY {testeEmail.configurado.RESEND_API_KEY ? "definida" : "em falta"} · EMAIL_DE {testeEmail.configurado.EMAIL_DE ?? "por defeito"} · NEXT_PUBLIC_SITE_URL {testeEmail.configurado.NEXT_PUBLIC_SITE_URL ?? "em falta"}
+          </span>
+        </div>
+      ) : null}
 
       {entidadeAberta ? <DetalheEntidade e={entidadeAberta} onClose={() => setAberta(null)} onMudou={carregar} /> : null}
       {nova ? <NovaEntidade onClose={() => setNova(false)} onCriada={() => { setNova(false); void carregar(); }} /> : null}
