@@ -261,10 +261,20 @@ async function airtableFetch(
 }
 
 /** Nome do campo desconhecido num erro 422 UNKNOWN_FIELD_NAME, ou null. */
-function campoDesconhecido(e: unknown): string | null {
+export function campoDesconhecido(e: unknown): string | null {
   const err = e as { status?: number; corpo?: string } | null;
   if (!err || err.status !== 422 || !err.corpo) return null;
-  const m = /Unknown field name[s]?:?\s*"([^"]+)"/i.exec(err.corpo);
+  // Corpo: {"error":{"type":"UNKNOWN_FIELD_NAME","message":"Unknown field name: \"X\""}}
+  try {
+    const j = JSON.parse(err.corpo) as { error?: { type?: string; message?: string } };
+    if (j.error?.type === "UNKNOWN_FIELD_NAME" && j.error.message) {
+      const m = /"([^"]+)"/.exec(j.error.message);
+      if (m) return m[1];
+    }
+  } catch {
+    /* corpo não é JSON: tenta o texto */
+  }
+  const m = /Unknown field names?:?\s*\\?"([^"\\]+)\\?"/i.exec(err.corpo);
   return m ? m[1] : null;
 }
 
@@ -281,7 +291,7 @@ async function listarTodos(
   let offset: string | undefined;
   let campos = fieldsQuery;
   let tentativasCampo = 0;
-  do {
+  for (;;) {
     const extra = new URLSearchParams();
     if (offset) extra.set("offset", offset);
     if (cellFormatJson) extra.set("cellFormat", "json");
@@ -310,7 +320,8 @@ async function listarTodos(
     }
     todos.push(...(r.records ?? []));
     offset = r.offset;
-  } while (offset);
+    if (!offset) break;
+  }
   return todos;
 }
 
