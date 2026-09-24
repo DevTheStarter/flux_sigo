@@ -24,10 +24,10 @@ export const CAMPOS_MAPEAVEIS: CampoMapeavel[] = [
   { k: "ano", rotulo: "Ano", tabela: "acoes", padrao: "Ano" },
   { k: "formandos", rotulo: "Nº de formandos", tabela: "acoes", padrao: "Nº Formandos", nota: "campo calculado, só o número" },
   { k: "temAvaliacoes", rotulo: "Tem avaliações", tabela: "acoes", padrao: "Tem Avaliações", nota: "campo calculado, 1 ou 0" },
-  { k: "r_acaoId", rotulo: "Ação de formação (ligação)", tabela: "registos", padrao: "Ação de Formação" },
-  { k: "r_flow", rotulo: "Flow", tabela: "registos", padrao: "Flow" },
-  { k: "r_estado", rotulo: "Estado do registo", tabela: "registos", padrao: "Status" },
-  { k: "r_detalhe", rotulo: "Detalhe", tabela: "registos", padrao: "Details" },
+  { k: "r_acaoId", rotulo: "Campo que liga o registo à ação", tabela: "registos", padrao: "Ação de Formação", nota: "o campo de ligação dentro da tabela de registos, não o nome da tabela de ações" },
+  { k: "r_flow", rotulo: "Campo do flow", tabela: "registos", padrao: "Flow" },
+  { k: "r_estado", rotulo: "Campo do estado do registo", tabela: "registos", padrao: "Status" },
+  { k: "r_detalhe", rotulo: "Campo do detalhe", tabela: "registos", padrao: "Details" },
 ];
 
 export const MAPA_PADRAO: Record<string, string> = Object.fromEntries(CAMPOS_MAPEAVEIS.map((c) => [c.k, c.padrao]));

@@ -125,7 +125,7 @@ export function Ligacao() {
           <span className="note-s">
             Lidos {estado.diagnostico.lidos} · ligados a uma ação {estado.diagnostico.ligados} · sem ligação {estado.diagnostico.semLigacao} · flow desconhecido {estado.diagnostico.flowDesconhecido} · estado ignorado {estado.diagnostico.estadoIgnorado}
             <br />Campos recebidos: <code>{estado.diagnostico.camposRecebidos.join(", ") || "nenhum"}</code>
-            {estado.diagnostico.camposIgnorados.length ? <><br />Campos pedidos que a tabela não tem: <code>{estado.diagnostico.camposIgnorados.join(", ")}</code></> : null}
+            {estado.diagnostico.camposIgnorados.length ? <><br />Campos pedidos que a tabela não tem: <code>{estado.diagnostico.camposIgnorados.join(", ")}</code>. Verifiquem o nome em "Campos e filtros" abaixo, ou deixem a caixa vazia para usar o nome por defeito.</> : null}
             <br />Exemplo, ligação: <code>{JSON.stringify(estado.diagnostico.exemploLigacao)}</code> · flow: <code>{JSON.stringify(estado.diagnostico.exemploFlow)}</code> · estado: <code>{JSON.stringify(estado.diagnostico.exemploEstado)}</code>
           </span>
         </div>
@@ -172,7 +172,7 @@ export function Ligacao() {
       {admin ? (
         <>
           <h2 style={{ marginTop: 34 }}>Campos e filtros</h2>
-          <p className="sdesc">Se as vossas colunas têm nomes diferentes dos da base de referência, indiquem aqui o nome de cada uma. Vazio usa o nome por defeito. Só estes campos são lidos.</p>
+          <p className="sdesc">Só é preciso mexer aqui se as vossas colunas tiverem nomes diferentes dos que aparecem a cinzento. Cada caixa é o nome de uma coluna, não de uma tabela. Vazio usa o nome por defeito. Só estes campos são lidos.</p>
           <p className="fld-l">Tabela de ações de formação</p>
           {CAMPOS_MAPEAVEIS.filter((c) => c.tabela === "acoes").map((c) => (
             <div className="lrow" key={c.k}>
