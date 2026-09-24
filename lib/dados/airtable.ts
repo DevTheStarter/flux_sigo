@@ -197,19 +197,20 @@ function converterRegisto(
 ): Registo | null {
   const { ours, createdTime } = mapBack(linha, mapa, CAMPOS_NOSSOS_REGISTO);
   const raw = linha.fields;
+  // Campo de ligação: a API devolve ["recXXXXXXXXXXXXXX"] (ids), em cellFormat
+  // string devolve o nome, e algumas integrações devolvem [{id, name}].
   let acaoId: string | undefined;
   const linkField = mapa["r_acaoId"] ?? MAPA_PADRAO["r_acaoId"];
   const linkVal = raw[linkField];
-  if (Array.isArray(linkVal)) {
-    const primeiro = linkVal[0];
-    if (primeiro && typeof primeiro === "object" && (primeiro as any).id) {
-      acaoId = (primeiro as any).id;
-    } else if (primeiro) {
-      acaoId = acaoNameToId.get(String(primeiro));
-    }
-  } else if (typeof linkVal === "string" && linkVal) {
-    acaoId = acaoNameToId.get(linkVal);
-  }
+  const resolver = (v: unknown): string | undefined => {
+    if (!v) return undefined;
+    if (typeof v === "object" && (v as any).id) return String((v as any).id);
+    const texto = String(v).trim();
+    if (/^rec[A-Za-z0-9]{14}$/.test(texto)) return texto;
+    return acaoNameToId.get(texto);
+  };
+  if (Array.isArray(linkVal)) acaoId = resolver(linkVal[0]);
+  else acaoId = resolver(linkVal);
   if (!acaoId) return null;
 
   const flowRaw = ours["r_flow"] ?? raw[mapa["r_flow"] ?? MAPA_PADRAO["r_flow"]];

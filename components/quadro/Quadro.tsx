@@ -13,6 +13,7 @@ import { VistaModal } from "./VistaModal";
 import { Modal } from "../ui/Modal";
 
 const LS_VISTA = "fluxo-vista";
+const LS_ESCONDER_ATRASADAS = "fluxo-esconder-atrasadas";
 const CHAVE_CACHE = "fluxo-quadro";
 
 function lerCache(entidadeId: string): RespostaQuadro | null {
@@ -38,6 +39,16 @@ export function Quadro() {
   const [pesquisa, setPesquisa] = useState("");
   const [verFuturas, setVerFuturas] = useState(false);
   const [verTodas, setVerTodas] = useState(false);
+  /** preferência por navegador: esconder as atrasadas e com erro (o contador continua a contá-las) */
+  const [esconderAtrasadas, setEsconderAtrasadas] = useState(false);
+  useEffect(() => {
+    try { setEsconderAtrasadas(localStorage.getItem(LS_ESCONDER_ATRASADAS) === "1"); } catch { /* ignorar */ }
+  }, []);
+  function mudarEsconderAtrasadas(v: boolean) {
+    setEsconderAtrasadas(v);
+    if (v && filtro === "late") setFiltro(null);
+    try { localStorage.setItem(LS_ESCONDER_ATRASADAS, v ? "1" : "0"); } catch { /* ignorar */ }
+  }
   const [aberto, setAberto] = useState<CartaoQuadro | null>(null);
   const [editarVista, setEditarVista] = useState<{ vista: Vista | null } | null>(null);
   const [apagarVista, setApagarVista] = useState<Vista | null>(null);
@@ -108,8 +119,9 @@ export function Quadro() {
     () =>
       daVista
         .filter((c) => cumpreFiltroRapido(c, filtro))
+        .filter((c) => !(esconderAtrasadas && filtro !== "late" && (c.estado === "late" || c.estado === "error")))
         .filter((c) => !q || c.acao.nome.toLowerCase().includes(q) || c.acao.codigoCurso.toLowerCase().includes(q)),
-    [daVista, filtro, q]
+    [daVista, filtro, q, esconderAtrasadas]
   );
 
   function colunas() {
@@ -208,6 +220,11 @@ export function Quadro() {
           </>
         ) : !filtro ? (
           <span>Sem condições. Mostra todas as ações.</span>
+        ) : null}
+        {contadores.atrasadas > 0 || esconderAtrasadas ? (
+          <button type="button" className="link" onClick={() => mudarEsconderAtrasadas(!esconderAtrasadas)}>
+            {esconderAtrasadas ? `mostrar ${contadores.atrasadas} atrasada${contadores.atrasadas === 1 ? "" : "s"}` : "esconder atrasadas"}
+          </button>
         ) : null}
         {filtro ? (
           <>
