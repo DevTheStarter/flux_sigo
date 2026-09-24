@@ -23,6 +23,7 @@ describe("adaptador Airtable: registos ligados à ação por id", () => {
     const chamadas: string[] = [];
     const fetchFalso = async (url: string) => {
       chamadas.push(url);
+      if (url.includes("/meta/")) return new Response(JSON.stringify({ tables: [{ id: "tblACOES000000000", name: "Acoes" }] }), { status: 200 });
       const corpo = url.includes("Logs")
         ? { records: [{ id: "recLog1AAAAAAAAAA", createdTime: "2026-07-29T23:22:43.000Z", fields: { "Ação de Formação": ["recAcao1AAAAAAAAA"], Flow: "Flow 0 (Data Collection)", Status: "Success", Details: "ok" } }] }
         : { records: [{ id: "recAcao1AAAAAAAAA", fields: { Name: "Ação X", "Código Curso": "C1", "Start date": "2026-06-29", "End Date": "2026-06-30", Estado: "Ativo", Formato: "Curso", Ano: "2026" } }] };
@@ -33,6 +34,8 @@ describe("adaptador Airtable: registos ligados à ação por id", () => {
     try {
       const fonte = criarAirtable({ baseId: "appTESTE000000000", token: "t", tabelaAcoes: "Acoes", tabelaRegistos: "Logs" });
       const registos = await fonte.obterRegistos();
+      const acoes = await fonte.obterAcoes();
+      expect(acoes[0].urlOrigem).toBe("https://airtable.com/appTESTE000000000/tblACOES000000000/recAcao1AAAAAAAAA");
       expect(registos).toHaveLength(1);
       expect(registos[0]).toMatchObject({ acaoId: "recAcao1AAAAAAAAA", flow: 0, estado: "success", data: "2026-07-29" });
     } finally {
