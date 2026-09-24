@@ -125,7 +125,7 @@ export function Ligacao() {
           <span className="note-s">
             Lidos {estado.diagnostico.lidos} · ligados a uma ação {estado.diagnostico.ligados} · sem ligação {estado.diagnostico.semLigacao} · flow desconhecido {estado.diagnostico.flowDesconhecido} · estado ignorado {estado.diagnostico.estadoIgnorado}
             <br />Campos recebidos: <code>{estado.diagnostico.camposRecebidos.join(", ") || "nenhum"}</code>
-            {estado.diagnostico.camposIgnorados.length ? <><br />Campos pedidos que a tabela não tem: <code>{estado.diagnostico.camposIgnorados.join(", ")}</code>. Verifiquem o nome em "Campos e filtros" abaixo, ou deixem a caixa vazia para usar o nome por defeito.</> : null}
+            {estado.diagnostico.camposIgnorados.length ? <><br />Campos pedidos que a tabela não tem: <code>{estado.diagnostico.camposIgnorados.join(", ")}</code>. Verifiquem o nome em &quot;Campos e filtros&quot; abaixo, ou deixem a caixa vazia para usar o nome por defeito.</> : null}
             <br />Exemplo, ligação: <code>{JSON.stringify(estado.diagnostico.exemploLigacao)}</code> · flow: <code>{JSON.stringify(estado.diagnostico.exemploFlow)}</code> · estado: <code>{JSON.stringify(estado.diagnostico.exemploEstado)}</code>
           </span>
         </div>
