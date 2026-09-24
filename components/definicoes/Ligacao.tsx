@@ -56,8 +56,14 @@ export function Ligacao() {
     if (tblForm.trim()) body.tabelaFormandos = tblForm.trim();
     const r = await fetch("/api/ligacao", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
     setAGuardar(false);
-    if (!r.ok) { toast("Não foi possível guardar a ligação"); return; }
+    if (!r.ok) {
+      const j = (await r.json().catch(() => ({}))) as { erro?: string };
+      toast(j.erro || `Não foi possível guardar a ligação (${r.status})`);
+      return;
+    }
     setToken("");
+    const m = /app[A-Za-z0-9]{14}/.exec(base);
+    if (m) setBase(m[0]);
     toast("Ligação guardada");
     await ler(true);
   }
@@ -71,7 +77,11 @@ export function Ligacao() {
       body: JSON.stringify({ mapaCampos: mapa, filtros }),
     });
     setAGuardarCampos(false);
-    if (!r.ok) { toast("Não foi possível guardar os campos"); return; }
+    if (!r.ok) {
+      const j = (await r.json().catch(() => ({}))) as { erro?: string };
+      toast(j.erro || `Não foi possível guardar os campos (${r.status})`);
+      return;
+    }
     toast("Campos e filtros guardados");
     await ler(true);
   }
@@ -137,7 +147,7 @@ export function Ligacao() {
         <>
           <h2 style={{ marginTop: 34 }}>Credencial do Fluxo</h2>
           <p className="sdesc">Token só de leitura, restrito às tabelas de ações e de registos. É cifrado nos nossos servidores e nunca volta a ser mostrado. É diferente do token dos flows, que fica em Credenciais e só neste navegador.</p>
-          <div className="fld"><label className="fld-l" htmlFor="lig-base">Identificador da base</label><input id="lig-base" value={base} onChange={(e) => setBase(e.target.value)} placeholder="appXXXXXXXXXXXXXX" /></div>
+          <div className="fld"><label className="fld-l" htmlFor="lig-base">Identificador da base</label><input id="lig-base" value={base} onChange={(e) => setBase(e.target.value)} placeholder="appXXXXXXXXXXXXXX" /><p className="fld-h">Só o id da base, que começa por app. Podes colar o URL do Airtable inteiro: fica só o id.</p></div>
           <div className="fld"><label className="fld-l" htmlFor="lig-token">Token só de leitura</label><input id="lig-token" type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder={estado?.configurada ? "•••••••• (guardado; escreve para substituir)" : "pat…"} /></div>
           <div style={{ display: "flex", gap: 10 }}>
             <div className="fld" style={{ flex: 1 }}><label className="fld-l" htmlFor="lig-ta">Tabela de ações</label><input id="lig-ta" value={tblAcoes} onChange={(e) => setTblAcoes(e.target.value)} placeholder="Ações de formação" /></div>
