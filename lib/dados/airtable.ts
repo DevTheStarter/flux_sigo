@@ -82,6 +82,7 @@ const cache = new Map<string, CacheEntry<unknown>>();
 /** Limpa a cache de uma base (Definições → "Sincronizar agora"). Só memória. */
 export function invalidarCache(baseId: string) {
   cache.delete(`at:${baseId}`);
+  cache.delete(`at:${baseId}:registos`);
 }
 
 /** Instante da última leitura em cache para esta base, ou null. Best-effort em serverless. */
@@ -249,7 +250,9 @@ async function airtableFetch(
   const url = `https://api.airtable.com/v0${path.startsWith("/") ? "" : "/"}${path}`;
   const res = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` },
-    next: { revalidate: 900 },
+    // Sem Data Cache do Next: persiste entre deploys e "Sincronizar agora" não a
+    // limparia. A cache de 15 minutos é a nossa, em memória (§7.2).
+    cache: "no-store",
   });
   if (!res.ok) {
     const corpo = await res.text().catch(() => "");
@@ -424,13 +427,24 @@ export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
         const refetch = cacheGet<{ acoes: Acao[]; acaoNameId: Map<string, string> }>(cacheKey);
         acaoNameId = refetch!.acaoNameId;
       }
+      const cacheRegistos = `${cacheKey}:registos`;
+      const emCache = cacheGet<Registo[]>(cacheRegistos);
+      if (emCache) return emCache;
       const camposQs = buildFieldsQuery(mapa, CAMPOS_NOSSOS_REGISTO);
       const recs = await listarTodos(token, baseId, tblRegistos, camposQs, undefined, true);
       const out: Registo[] = [];
+      let semAcao = 0;
       for (const rec of recs) {
         const r = converterRegisto(rec, mapa, acaoNameId);
         if (r) out.push(r);
+        else semAcao += 1;
       }
+      if (recs.length && !out.length) {
+        log.warn("Airtable registos lidos mas nenhum ligado a uma ação", { tabela: tblRegistos, lidos: recs.length });
+      } else if (semAcao) {
+        log.info("Airtable registos ignorados", { tabela: tblRegistos, ignorados: semAcao, ligados: out.length });
+      }
+      cacheSet(cacheRegistos, out);
       return out;
     },
 
