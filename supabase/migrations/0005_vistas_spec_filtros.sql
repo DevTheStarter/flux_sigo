@@ -24,10 +24,11 @@ BEGIN
   )
   ON CONFLICT (entidade_id, nome) DO NOTHING;
 
-  -- Filtros por defeito (§7.3): Estado ≠ Descontinuado, Formato = PT.
+  -- Filtro por defeito: Estado ≠ Descontinuado. (Formato = PT da §7.3 fica de fora:
+  -- na base de referência "Formato" é o tipo de curso, e o filtro esvaziaria o quadro.)
   -- Chaves são os nossos nomes de campo; o adaptador traduz via mapa_campos.
   INSERT INTO config_entidade (entidade_id, filtros)
-  VALUES (NEW.id, '{"estado":{"$neq":"Descontinuado"},"formato":"PT"}'::jsonb)
+  VALUES (NEW.id, '{"estado":{"$neq":"Descontinuado"}}'::jsonb)
   ON CONFLICT (entidade_id) DO NOTHING;
 
   INSERT INTO config_relatorio (entidade_id, ativo, dia_semana, hora, destinatarios)

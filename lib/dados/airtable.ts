@@ -59,6 +59,7 @@ const FLOW: Record<string, number> = {
   "Flow 3 (Ação)": 3,
   "Flow 3": 3,
   "Flow 4 (Enrollment)": 4,
+  "Flow 4 (Certificate)": 4,
   "Flow 4": 4,
   "Flow 5 (PDF & Concluir)": 5,
   "Flow 5": 5,
@@ -224,12 +225,12 @@ function converterRegisto(
   }
 
   const estadoRaw = ours["r_estado"] ?? raw[mapa["r_estado"] ?? MAPA_PADRAO["r_estado"]];
-  const estado =
-    typeof estadoRaw === "string" && ESTADO[estadoRaw] !== undefined
-      ? ESTADO[estadoRaw]
-      : ("error" as const);
-  if (typeof estadoRaw === "string" && !ESTADO[estadoRaw]) {
-    log.warn("Airtable estado log desconhecido", { raw: estadoRaw, linha: linha.id });
+  const estado = typeof estadoRaw === "string" ? ESTADO[estadoRaw] : undefined;
+  if (!estado) {
+    // "In Progress" e valores desconhecidos não são sucesso nem falha: o registo
+    // é ignorado (§7.2: registado, nunca tratado como erro em silêncio).
+    if (estadoRaw !== "In Progress") log.warn("Airtable estado log desconhecido", { raw: estadoRaw, linha: linha.id });
+    return null;
   }
 
   const detalhe = String(ours["r_detalhe"] ?? "");
@@ -251,9 +252,20 @@ async function airtableFetch(
   });
   if (!res.ok) {
     const corpo = await res.text().catch(() => "");
-    throw new Error(`Airtable HTTP ${res.status} ${res.statusText} — ${corpo.slice(0, 200)}`);
+    const err = new Error(`Airtable HTTP ${res.status} ${res.statusText} — ${corpo.slice(0, 200)}`) as Error & { status?: number; corpo?: string };
+    err.status = res.status;
+    err.corpo = corpo;
+    throw err;
   }
   return res.json();
+}
+
+/** Nome do campo desconhecido num erro 422 UNKNOWN_FIELD_NAME, ou null. */
+function campoDesconhecido(e: unknown): string | null {
+  const err = e as { status?: number; corpo?: string } | null;
+  if (!err || err.status !== 422 || !err.corpo) return null;
+  const m = /Unknown field name[s]?:?\s*"([^"]+)"/i.exec(err.corpo);
+  return m ? m[1] : null;
 }
 
 async function listarTodos(
@@ -267,6 +279,8 @@ async function listarTodos(
 ): Promise<any[]> {
   const todos: any[] = [];
   let offset: string | undefined;
+  let campos = fieldsQuery;
+  let tentativasCampo = 0;
   do {
     const extra = new URLSearchParams();
     if (offset) extra.set("offset", offset);
@@ -275,10 +289,25 @@ async function listarTodos(
       const formula = filtrosParaFormula(filtros, mapa);
       if (formula) extra.set("filterByFormula", formula);
     }
-    const qs = [fieldsQuery, extra.toString()].filter(Boolean).join("&");
+    const qs = [campos, extra.toString()].filter(Boolean).join("&");
     const sep = qs ? "?" : "";
     const path = `/${encodeURIComponent(baseId)}/${encodeURIComponent(tabela)}${sep}${qs}`;
-    const r = await airtableFetch(token, path);
+    let r: { records: any[]; offset?: string };
+    try {
+      r = await airtableFetch(token, path);
+    } catch (e) {
+      // Campo opcional que esta base não tem (ex.: "Nº Formandos" ainda não criado):
+      // sai da lista e repete-se o pedido. Os campos em falta ficam vazios.
+      const desconhecido = campoDesconhecido(e);
+      if (desconhecido && tentativasCampo < 6) {
+        tentativasCampo += 1;
+        log.warn("Airtable campo inexistente, ignorado", { tabela, campo: desconhecido });
+        const alvo = `fields[]=${urlB64(desconhecido)}`;
+        campos = campos.split("&").filter((p) => p !== alvo).join("&");
+        continue;
+      }
+      throw new Error(`${(e as Error).message} (tabela "${tabela}")`);
+    }
     todos.push(...(r.records ?? []));
     offset = r.offset;
   } while (offset);
