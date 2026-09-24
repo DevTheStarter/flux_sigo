@@ -13,7 +13,8 @@ import { VistaModal } from "./VistaModal";
 import { Modal } from "../ui/Modal";
 
 const LS_VISTA = "fluxo-vista";
-const LS_ESCONDER_ATRASADAS = "fluxo-esconder-atrasadas";
+/** atrasadas há mais de dois meses ficam escondidas por defeito (§4.4, mesma lógica das concluídas) */
+const DIAS_ATRASO_ANTIGO = 61;
 const CHAVE_CACHE = "fluxo-quadro";
 
 function lerCache(entidadeId: string): RespostaQuadro | null {
@@ -39,16 +40,8 @@ export function Quadro() {
   const [pesquisa, setPesquisa] = useState("");
   const [verFuturas, setVerFuturas] = useState(false);
   const [verTodas, setVerTodas] = useState(false);
-  /** preferência por navegador: esconder as atrasadas e com erro (o contador continua a contá-las) */
-  const [esconderAtrasadas, setEsconderAtrasadas] = useState(false);
-  useEffect(() => {
-    try { setEsconderAtrasadas(localStorage.getItem(LS_ESCONDER_ATRASADAS) === "1"); } catch { /* ignorar */ }
-  }, []);
-  function mudarEsconderAtrasadas(v: boolean) {
-    setEsconderAtrasadas(v);
-    if (v && filtro === "late") setFiltro(null);
-    try { localStorage.setItem(LS_ESCONDER_ATRASADAS, v ? "1" : "0"); } catch { /* ignorar */ }
-  }
+  /** mostrar também as atrasadas há mais de dois meses */
+  const [verAntigas, setVerAntigas] = useState(false);
   const [aberto, setAberto] = useState<CartaoQuadro | null>(null);
   const [editarVista, setEditarVista] = useState<{ vista: Vista | null } | null>(null);
   const [apagarVista, setApagarVista] = useState<Vista | null>(null);
@@ -119,9 +112,8 @@ export function Quadro() {
     () =>
       daVista
         .filter((c) => cumpreFiltroRapido(c, filtro))
-        .filter((c) => !(esconderAtrasadas && filtro !== "late" && (c.estado === "late" || c.estado === "error")))
         .filter((c) => !q || c.acao.nome.toLowerCase().includes(q) || c.acao.codigoCurso.toLowerCase().includes(q)),
-    [daVista, filtro, q, esconderAtrasadas]
+    [daVista, filtro, q]
   );
 
   function colunas() {
@@ -129,6 +121,10 @@ export function Quadro() {
       let items = visiveis.filter((c) => c.col === i || (i === 5 && c.col === 6));
       let escondidas = 0;
       let futuras = 0;
+      // Atrasadas há mais de dois meses: escondidas atrás de uma ligação, como as concluídas antigas.
+      const ehAntiga = (c: CartaoQuadro) => c.estado === "late" && (c.dias ?? 0) > DIAS_ATRASO_ANTIGO;
+      const antigas = items.filter(ehAntiga).length;
+      if (!verAntigas) items = items.filter((c) => !ehAntiga(c));
       if (i === 5 && !verTodas) {
         escondidas = items.filter((c) => c.estado === "done" && (c.concluidaHa ?? 0) > 7).length;
         items = items.filter((c) => !(c.estado === "done" && (c.concluidaHa ?? 0) > 7));
@@ -142,7 +138,7 @@ export function Quadro() {
       const urgencia = (c: CartaoQuadro) =>
         c.estado === "late" ? -1000 - (c.dias ?? 0) : c.estado === "error" || c.estado === "blocked" ? -500 : c.estado === "today" ? 0 : c.dias ?? 999;
       items = [...items].sort((a, b) => ordem(a.estado) - ordem(b.estado) || urgencia(a) - urgencia(b));
-      return { nome, i, items, escondidas, futuras };
+      return { nome, i, items, escondidas, futuras, antigas };
     });
   }
 
@@ -221,11 +217,6 @@ export function Quadro() {
         ) : !filtro ? (
           <span>Sem condições. Mostra todas as ações.</span>
         ) : null}
-        {contadores.atrasadas > 0 || esconderAtrasadas ? (
-          <button type="button" className="link" onClick={() => mudarEsconderAtrasadas(!esconderAtrasadas)}>
-            {esconderAtrasadas ? `mostrar ${contadores.atrasadas} atrasada${contadores.atrasadas === 1 ? "" : "s"}` : "esconder atrasadas"}
-          </button>
-        ) : null}
         {filtro ? (
           <>
             <span className="cond">Estado: {filtro === "late" ? "atrasadas" : filtro === "today" ? "hoje" : "bloqueadas"}</span>
@@ -252,11 +243,16 @@ export function Quadro() {
         </div>
       ) : (
         <div className="board">
-          {colunas().map(({ nome, i, items, escondidas, futuras }) => (
+          {colunas().map(({ nome, i, items, escondidas, futuras, antigas }) => (
             <div className="col" key={nome}>
               <div className="col-h"><span className="col-t">{nome}</span><span className="col-n">{items.length}</span></div>
               {items.length === 0 ? <div className="empty">{q ? "Sem resultados" : "Vazio"}</div> : null}
               {items.map((c) => <Cartao key={c.id} c={c} onClick={() => setAberto(c)} />)}
+              {antigas > 0 ? (
+                <button type="button" className="more" onClick={() => setVerAntigas(!verAntigas)}>
+                  {verAntigas ? `Esconder as ${antigas} atrasadas há mais de dois meses` : `Ver ${antigas} atrasada${antigas > 1 ? "s" : ""} há mais de dois meses`}
+                </button>
+              ) : null}
               {i === 0 && futuras > 0 ? (
                 <button type="button" className="more" onClick={() => setVerFuturas(!verFuturas)}>
                   {verFuturas ? `Esconder as ${futuras} futuras` : `Ver ${futuras} futura${futuras > 1 ? "s" : ""}`}
