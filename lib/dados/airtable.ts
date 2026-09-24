@@ -79,6 +79,30 @@ const CACHE_TTL_MS = 15 * 60 * 1000;
 type CacheEntry<T> = { data: T; ate: number; lida: number };
 const cache = new Map<string, CacheEntry<unknown>>();
 
+/**
+ * Diagnóstico da última leitura de registos por base (Definições → Ligação de
+ * dados). Só contagens, nomes de campos e o valor do campo de ligação; nunca o
+ * detalhe dos registos, que pode ter nomes de formandos.
+ */
+export interface DiagnosticoRegistos {
+  tabela: string;
+  lidos: number;
+  ligados: number;
+  semLigacao: number;
+  flowDesconhecido: number;
+  estadoIgnorado: number;
+  camposRecebidos: string[];
+  exemploLigacao: unknown;
+  exemploFlow: unknown;
+  exemploEstado: unknown;
+  camposIgnorados: string[];
+  quando: string;
+}
+const diagnosticos = new Map<string, DiagnosticoRegistos>();
+export function diagnosticoDe(baseId: string): DiagnosticoRegistos | null {
+  return diagnosticos.get(`at:${baseId}`) ?? null;
+}
+
 /** Limpa a cache de uma base (Definições → "Sincronizar agora"). Só memória. */
 export function invalidarCache(baseId: string) {
   cache.delete(`at:${baseId}`);
@@ -194,7 +218,8 @@ function temAvaliacoesField(raw: Record<string, unknown>, mapa: Record<string, s
 function converterRegisto(
   linha: { fields: Record<string, unknown>; id: string; createdTime?: string },
   mapa: Record<string, string>,
-  acaoNameToId: Map<string, string>
+  acaoNameToId: Map<string, string>,
+  motivo?: { valor: "semLigacao" | "flowDesconhecido" | "estadoIgnorado" | null }
 ): Registo | null {
   const { ours, createdTime } = mapBack(linha, mapa, CAMPOS_NOSSOS_REGISTO);
   const raw = linha.fields;
@@ -212,7 +237,10 @@ function converterRegisto(
   };
   if (Array.isArray(linkVal)) acaoId = resolver(linkVal[0]);
   else acaoId = resolver(linkVal);
-  if (!acaoId) return null;
+  if (!acaoId) {
+    if (motivo) motivo.valor = "semLigacao";
+    return null;
+  }
 
   const flowRaw = ours["r_flow"] ?? raw[mapa["r_flow"] ?? MAPA_PADRAO["r_flow"]];
   let flowNum: 0 | 1 | 2 | 3 | 4 | 5 | undefined;
@@ -223,6 +251,7 @@ function converterRegisto(
   }
   if (flowNum === undefined) {
     log.warn("Airtable flow desconhecido", { flow: flowRaw, linha: linha.id });
+    if (motivo) motivo.valor = "flowDesconhecido";
     return null;
   }
 
@@ -232,6 +261,7 @@ function converterRegisto(
     // "In Progress" e valores desconhecidos não são sucesso nem falha: o registo
     // é ignorado (§7.2: registado, nunca tratado como erro em silêncio).
     if (estadoRaw !== "In Progress") log.warn("Airtable estado log desconhecido", { raw: estadoRaw, linha: linha.id });
+    if (motivo) motivo.valor = "estadoIgnorado";
     return null;
   }
 
@@ -289,7 +319,8 @@ async function listarTodos(
   fieldsQuery: string,
   filtros?: Record<string, unknown>,
   cellFormatJson = false,
-  mapa: Record<string, string> = {}
+  mapa: Record<string, string> = {},
+  camposIgnorados: string[] = []
 ): Promise<any[]> {
   const todos: any[] = [];
   let offset: string | undefined;
@@ -316,6 +347,7 @@ async function listarTodos(
       if (desconhecido && tentativasCampo < 6) {
         tentativasCampo += 1;
         log.warn("Airtable campo inexistente, ignorado", { tabela, campo: desconhecido });
+        camposIgnorados.push(desconhecido);
         const alvo = `fields[]=${urlB64(desconhecido)}`;
         campos = campos.split("&").filter((p) => p !== alvo).join("&");
         continue;
@@ -431,18 +463,34 @@ export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
       const emCache = cacheGet<Registo[]>(cacheRegistos);
       if (emCache) return emCache;
       const camposQs = buildFieldsQuery(mapa, CAMPOS_NOSSOS_REGISTO);
-      const recs = await listarTodos(token, baseId, tblRegistos, camposQs, undefined, true);
+      const camposIgnorados: string[] = [];
+      const recs = await listarTodos(token, baseId, tblRegistos, camposQs, undefined, true, mapa, camposIgnorados);
       const out: Registo[] = [];
-      let semAcao = 0;
+      const diag: DiagnosticoRegistos = {
+        tabela: tblRegistos,
+        lidos: recs.length,
+        ligados: 0,
+        semLigacao: 0,
+        flowDesconhecido: 0,
+        estadoIgnorado: 0,
+        camposRecebidos: recs[0] ? Object.keys(recs[0].fields ?? {}) : [],
+        exemploLigacao: recs[0]?.fields?.[mapa["r_acaoId"] ?? MAPA_PADRAO["r_acaoId"]] ?? null,
+        exemploFlow: recs[0]?.fields?.[mapa["r_flow"] ?? MAPA_PADRAO["r_flow"]] ?? null,
+        exemploEstado: recs[0]?.fields?.[mapa["r_estado"] ?? MAPA_PADRAO["r_estado"]] ?? null,
+        camposIgnorados,
+        quando: new Date().toISOString(),
+      };
       for (const rec of recs) {
-        const r = converterRegisto(rec, mapa, acaoNameId);
-        if (r) out.push(r);
-        else semAcao += 1;
+        const motivo = { valor: null as "semLigacao" | "flowDesconhecido" | "estadoIgnorado" | null };
+        const r = converterRegisto(rec, mapa, acaoNameId, motivo);
+        if (r) {
+          out.push(r);
+          diag.ligados += 1;
+        } else if (motivo.valor) diag[motivo.valor] += 1;
       }
+      diagnosticos.set(cacheKey, diag);
       if (recs.length && !out.length) {
-        log.warn("Airtable registos lidos mas nenhum ligado a uma ação", { tabela: tblRegistos, lidos: recs.length });
-      } else if (semAcao) {
-        log.info("Airtable registos ignorados", { tabela: tblRegistos, ignorados: semAcao, ligados: out.length });
+        log.warn("Airtable registos lidos mas nenhum ligado a uma ação", { tabela: tblRegistos, lidos: recs.length, campos: diag.camposRecebidos, ignorados: camposIgnorados });
       }
       cacheSet(cacheRegistos, out);
       return out;

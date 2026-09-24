@@ -119,6 +119,17 @@ export function Ligacao() {
         <span className="lrow-b"><span className="lrow-t">Registos de execução</span><span className="lrow-s">{estado?.contagens ? `Leitura · ${estado.contagens.registos} registos` : "Leitura"}</span></span>
         <span className="pill">{estado?.contagens ? "ok" : "—"}</span>
       </div>
+      {estado?.diagnostico && (estado.diagnostico.ligados === 0 || estado.diagnostico.camposIgnorados.length > 0) ? (
+        <div className="note" style={{ marginTop: 10 }}>
+          <span className="note-t">Diagnóstico da tabela de registos ({estado.diagnostico.tabela})</span>
+          <span className="note-s">
+            Lidos {estado.diagnostico.lidos} · ligados a uma ação {estado.diagnostico.ligados} · sem ligação {estado.diagnostico.semLigacao} · flow desconhecido {estado.diagnostico.flowDesconhecido} · estado ignorado {estado.diagnostico.estadoIgnorado}
+            <br />Campos recebidos: <code>{estado.diagnostico.camposRecebidos.join(", ") || "nenhum"}</code>
+            {estado.diagnostico.camposIgnorados.length ? <><br />Campos pedidos que a tabela não tem: <code>{estado.diagnostico.camposIgnorados.join(", ")}</code></> : null}
+            <br />Exemplo, ligação: <code>{JSON.stringify(estado.diagnostico.exemploLigacao)}</code> · flow: <code>{JSON.stringify(estado.diagnostico.exemploFlow)}</code> · estado: <code>{JSON.stringify(estado.diagnostico.exemploEstado)}</code>
+          </span>
+        </div>
+      ) : null}
       <div className="lrow">
         <span className="lrow-b"><span className="lrow-t">Formandos</span><span className="lrow-s">Sem acesso, por configuração da credencial</span></span>
         <span className="pill">bloqueada</span>

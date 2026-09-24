@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClientServer } from "../../../lib/supabase/server";
-import { criarAirtable, invalidarCache, ultimaLeituraDe } from "../../../lib/dados/airtable";
+import { criarAirtable, diagnosticoDe, invalidarCache, ultimaLeituraDe, type DiagnosticoRegistos } from "../../../lib/dados/airtable";
 import { COLUNAS_CONFIG_FONTE, configFonte, tokenDaCredencial, type ConfigFonteRow } from "../../../lib/dados/credencial";
 import { encriptar } from "../../../lib/cifra";
 import { log } from "../../../lib/log";
@@ -24,6 +24,8 @@ export interface EstadoLigacaoResposta {
   /** o nosso campo → campo na fonte; só as chaves que a entidade alterou */
   mapaCampos: Record<string, string>;
   filtros: FiltrosSimples;
+  /** última leitura da tabela de registos: contagens e motivos de rejeição */
+  diagnostico: DiagnosticoRegistos | null;
 }
 
 async function contexto() {
@@ -69,6 +71,7 @@ export async function GET(req: Request) {
     },
     mapaCampos: limparMapa(cfg?.mapa_campos),
     filtros: filtrosParaSimples(cfg?.filtros),
+    diagnostico: null,
   };
   if (!cfg || !fonteCfg) return NextResponse.json(base);
 
@@ -95,6 +98,7 @@ export async function GET(req: Request) {
     resposta.ok = true;
     resposta.contagens = { acoes: acoes.length, registos: registos.length };
     resposta.ultimaLeitura = ultimaLeituraDe(fonteCfg.baseId) ?? new Date().toISOString();
+    resposta.diagnostico = diagnosticoDe(fonteCfg.baseId);
   } catch (e) {
     resposta.ok = false;
     resposta.erro = (e as Error).message;
