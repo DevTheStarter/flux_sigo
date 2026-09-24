@@ -36,12 +36,17 @@ BEGIN
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 DROP TRIGGER IF EXISTS trg_entidade_defaults ON entidades;
 CREATE TRIGGER trg_entidade_defaults
 AFTER INSERT ON entidades
 FOR EACH ROW EXECUTE FUNCTION tg_entidade_defaults();
+
+-- O trigger de 0001 (sem SECURITY DEFINER) esbarrava na RLS de config_entidade
+-- quando a entidade era criada com a sessão do staff. Fica só um trigger.
+DROP TRIGGER IF EXISTS tg_entidade_defaults ON public.entidades;
+DROP FUNCTION IF EXISTS public.entidade_recor_criar_defaults();
 
 -- 2. Entidades existentes: "Ativas" (fixa, sem condições) passa a "Todas";
 --    "Concluídas" (fixa, sem condições) desaparece por ser um duplicado;

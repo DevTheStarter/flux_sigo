@@ -158,6 +158,11 @@ export async function POST(req: Request) {
         ? body.setup_em
         : null;
 
+    // §6.1: as rotas admin escrevem com o service role. O trigger que semeia
+    // config_entidade, vistas e config_relatorio corre dentro deste INSERT e
+    // com a sessão do staff esbarrava na RLS de config_entidade (só a própria
+    // entidade a pode escrever). O staff já foi validado acima.
+    const sb = createClientService();
     let inserted: any = null;
     try {
       const insertRow: Record<string, unknown> = {
@@ -165,10 +170,10 @@ export async function POST(req: Request) {
         nipc,
         ativa,
         contrato_assinado,
-        setup_em,
+        setup_em: setup_em ?? new Date().toISOString().slice(0, 10),
         suporte: false,
       };
-      const table: any = (supabase as any).from("entidades");
+      const table: any = (sb as any).from("entidades");
       const res = await table
         .insert([insertRow])
         .select("id, nome, nipc, ativa, suporte, setup_em, contrato_assinado, criada_em")
@@ -198,7 +203,6 @@ export async function POST(req: Request) {
     const fonteTipo = typeof body.fonte_tipo === "string" && body.fonte_tipo.trim() ? body.fonte_tipo.trim().toLowerCase() : null;
     if (fonteTipo) {
       try {
-        const sb = createClientService();
         await sb.from("config_entidade").upsert({ entidade_id: inserted.id, fonte_tipo: fonteTipo } as any, { onConflict: "entidade_id" });
       } catch (e) {
         log.warn("entidades post fonte_tipo não gravado", { err: (e as Error).message });
