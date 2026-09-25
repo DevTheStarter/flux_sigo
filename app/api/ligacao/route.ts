@@ -141,9 +141,24 @@ export async function POST(req: Request) {
     }
     row.fonte_base = m ? m[0] : null;
   }
-  if ("tabelaAcoes" in body) row.fonte_tabela_acoes = texto("tabelaAcoes");
-  if ("tabelaRegistos" in body) row.fonte_tabela_registos = texto("tabelaRegistos");
-  if ("tabelaFormandos" in body) row.fonte_tabela_formandos = texto("tabelaFormandos");
+  // Tabelas: nome ou id (tbl…). Um URL do Airtable colado fica só com o id,
+  // que a API aceita e que os links para os registos precisam.
+  const tabela = (k: string) => {
+    const v = texto(k);
+    if (!v) return null;
+    const m = /tbl[A-Za-z0-9]{14}/.exec(v);
+    return m && /airtable\.com|\//.test(v) ? m[0] : v;
+  };
+  if ("tabelaAcoes" in body) row.fonte_tabela_acoes = tabela("tabelaAcoes");
+  if ("tabelaRegistos" in body) row.fonte_tabela_registos = tabela("tabelaRegistos");
+  if ("tabelaFormandos" in body) row.fonte_tabela_formandos = tabela("tabelaFormandos");
+  // URL da tabela de ações colado no identificador da base: aproveita o id da tabela
+  // quando a tabela de ações ainda não está definida.
+  if ("fonteBase" in body && !("tabelaAcoes" in body)) {
+    const bruto = texto("fonteBase") ?? "";
+    const t = /tbl[A-Za-z0-9]{14}/.exec(bruto);
+    if (t) row.fonte_tabela_acoes = t[0];
+  }
   if ("mapaCampos" in body) row.mapa_campos = limparMapa(body.mapaCampos);
   if ("filtros" in body && body.filtros && typeof body.filtros === "object") {
     row.filtros = simplesParaFiltros(body.filtros as Partial<FiltrosSimples>);

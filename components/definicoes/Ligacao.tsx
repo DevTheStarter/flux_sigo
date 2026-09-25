@@ -158,10 +158,21 @@ export function Ligacao() {
         <>
           <h2 style={{ marginTop: 34 }}>Credencial do Fluxo</h2>
           <p className="sdesc">Token só de leitura, restrito às tabelas de ações e de registos. É cifrado nos nossos servidores e nunca volta a ser mostrado. É diferente do token dos flows, que fica em Credenciais e só neste navegador.</p>
-          <div className="fld"><label className="fld-l" htmlFor="lig-base">Identificador da base</label><input id="lig-base" value={base} onChange={(e) => setBase(e.target.value)} placeholder="appXXXXXXXXXXXXXX" /><p className="fld-h">Só o id da base, que começa por app. Podes colar o URL do Airtable inteiro: fica só o id.</p></div>
+          <div className="fld"><label className="fld-l" htmlFor="lig-base">Identificador da base</label><input
+              id="lig-base"
+              value={base}
+              onChange={(e) => {
+                const v = e.target.value;
+                setBase(v);
+                // URL da tabela de ações colado: aproveita o id da tabela se ainda não houver um.
+                const t = /tbl[A-Za-z0-9]{14}/.exec(v);
+                if (t && !/^tbl/.test(tblAcoes)) setTblAcoes(t[0]);
+              }}
+              placeholder="appXXXXXXXXXXXXXX"
+            /><p className="fld-h">Só o id da base, que começa por app. Podes colar o URL da tabela de ações inteiro: o id da base e o id da tabela ficam preenchidos.</p></div>
           <div className="fld"><label className="fld-l" htmlFor="lig-token">Token só de leitura</label><input id="lig-token" type="password" autoComplete="off" value={token} onChange={(e) => setToken(e.target.value)} placeholder={estado?.configurada ? "•••••••• (guardado; escreve para substituir)" : "pat…"} /></div>
           <div style={{ display: "flex", gap: 10 }}>
-            <div className="fld" style={{ flex: 1 }}><label className="fld-l" htmlFor="lig-ta">Tabela de ações</label><input id="lig-ta" value={tblAcoes} onChange={(e) => setTblAcoes(e.target.value)} placeholder="Ações de formação" /></div>
+            <div className="fld" style={{ flex: 1 }}><label className="fld-l" htmlFor="lig-ta">Tabela de ações</label><input id="lig-ta" value={tblAcoes} onChange={(e) => setTblAcoes(e.target.value)} placeholder="Ações de formação" /><p className="fld-h">Nome ou id (tbl…). Com o id, o link &quot;Abrir na fonte de dados&quot; abre o registo certo.</p></div>
             <div className="fld" style={{ flex: 1 }}><label className="fld-l" htmlFor="lig-tl">Tabela de registos</label><input id="lig-tl" value={tblLogs} onChange={(e) => setTblLogs(e.target.value)} placeholder="Logs de execução" /><p className="fld-h">Nome exato da tabela no Airtable, por exemplo SIGO Logs.</p></div>
           </div>
           <div className="fld"><label className="fld-l" htmlFor="lig-tf">Tabela de formandos (só para verificar que não está acessível)</label><input id="lig-tf" value={tblForm} onChange={(e) => setTblForm(e.target.value)} placeholder="Formandos" /><p className="fld-h">Nunca é lida. Serve para confirmar que a credencial não lhe chega.</p></div>
