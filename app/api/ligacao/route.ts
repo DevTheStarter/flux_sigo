@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClientServer } from "../../../lib/supabase/server";
-import { criarAirtable, diagnosticoDe, invalidarCache, ultimaLeituraDe, type DiagnosticoRegistos } from "../../../lib/dados/airtable";
+import { criarAirtable, diagnosticoDe, estadoIdTabelaDe, invalidarCache, ultimaLeituraDe, type DiagnosticoRegistos, type EstadoIdTabela } from "../../../lib/dados/airtable";
 import { COLUNAS_CONFIG_FONTE, configFonte, tokenDaCredencial, type ConfigFonteRow } from "../../../lib/dados/credencial";
 import { encriptar } from "../../../lib/cifra";
 import { log } from "../../../lib/log";
@@ -26,6 +26,8 @@ export interface EstadoLigacaoResposta {
   filtros: FiltrosSimples;
   /** última leitura da tabela de registos: contagens e motivos de rejeição */
   diagnostico: DiagnosticoRegistos | null;
+  /** como o id da tabela de ações foi obtido; decide se os links abrem o registo ou só a base */
+  idTabelaAcoes: EstadoIdTabela | null;
 }
 
 async function contexto() {
@@ -72,6 +74,7 @@ export async function GET(req: Request) {
     mapaCampos: limparMapa(cfg?.mapa_campos),
     filtros: filtrosParaSimples(cfg?.filtros),
     diagnostico: null,
+    idTabelaAcoes: null,
   };
   if (!cfg || !fonteCfg) return NextResponse.json(base);
 
@@ -99,6 +102,7 @@ export async function GET(req: Request) {
     resposta.contagens = { acoes: acoes.length, registos: registos.length };
     resposta.ultimaLeitura = ultimaLeituraDe(fonteCfg.baseId) ?? new Date().toISOString();
     resposta.diagnostico = diagnosticoDe(fonteCfg.baseId);
+    resposta.idTabelaAcoes = estadoIdTabelaDe(fonteCfg.baseId);
   } catch (e) {
     resposta.ok = false;
     resposta.erro = (e as Error).message;

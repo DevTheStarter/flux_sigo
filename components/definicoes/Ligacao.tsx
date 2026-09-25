@@ -130,6 +130,25 @@ export function Ligacao() {
           </span>
         </div>
       ) : null}
+      {estado?.configurada && estado.idTabelaAcoes ? (
+        <div className="lrow">
+          <span className="lrow-b">
+            <span className="lrow-t">Links para os registos</span>
+            <span className="lrow-s">
+              {estado.idTabelaAcoes.id
+                ? estado.idTabelaAcoes.origem === "meta"
+                  ? "Abrem o registo no Airtable. O id da tabela é lido automaticamente."
+                  : "Abrem o registo no Airtable."
+                : estado.idTabelaAcoes.origem === "sem_ambito"
+                  ? "Abrem só a base. O token não pode ler a estrutura da base, por isso o Airtable não nos dá o id da tabela. Ao criar o token, marquem também o âmbito schema.bases:read; ou colem o URL da tabela de ações no campo Tabela de ações."
+                  : estado.idTabelaAcoes.origem === "nao_encontrada"
+                    ? "Abrem só a base. Não existe nenhuma tabela com este nome na base."
+                    : "Abrem só a base. Não foi possível obter o id da tabela nesta leitura."}
+            </span>
+          </span>
+          <span className={"pill" + (estado.idTabelaAcoes.id ? " fill" : " red")}>{estado.idTabelaAcoes.id ? "registo" : "base"}</span>
+        </div>
+      ) : null}
       <div className="lrow">
         <span className="lrow-b"><span className="lrow-t">Formandos</span><span className="lrow-s">Sem acesso, por configuração da credencial</span></span>
         <span className="pill">bloqueada</span>

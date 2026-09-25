@@ -398,12 +398,23 @@ function escapeAirtable(s: string): string {
  * API (só nomes e ids de tabelas, sem dados); se o token não tiver esse
  * âmbito, fica sem id e o link usa só a base e o registo.
  */
-async function idDaTabela(token: string, baseId: string, tabela: string): Promise<string | null> {
-  if (/^tbl[A-Za-z0-9]{14}$/.test(tabela)) return tabela;
+export type OrigemIdTabela = "configuracao" | "meta" | "sem_ambito" | "nao_encontrada" | "erro";
+export interface EstadoIdTabela {
+  id: string | null;
+  origem: OrigemIdTabela;
+}
+const idsTabelas = new Map<string, EstadoIdTabela>();
+/** Como o id da tabela de ações foi (ou não) obtido, para a Ligação de dados. */
+export function estadoIdTabelaDe(baseId: string): EstadoIdTabela | null {
+  return idsTabelas.get(`at:${baseId}`) ?? null;
+}
+
+async function idDaTabela(token: string, baseId: string, tabela: string): Promise<EstadoIdTabela> {
+  if (/^tbl[A-Za-z0-9]{14}$/.test(tabela)) return { id: tabela, origem: "configuracao" };
   const k = `at:${baseId}:tbl:${tabela}`;
-  const emCache = cacheGet<{ id: string | null }>(k);
-  if (emCache) return emCache.id;
-  let id: string | null = null;
+  const emCache = cacheGet<EstadoIdTabela>(k);
+  if (emCache) return emCache;
+  let estado: EstadoIdTabela = { id: null, origem: "erro" };
   try {
     const res = await fetch(`https://api.airtable.com/v0/meta/bases/${encodeURIComponent(baseId)}/tables`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -411,13 +422,17 @@ async function idDaTabela(token: string, baseId: string, tabela: string): Promis
     });
     if (res.ok) {
       const j = (await res.json()) as { tables?: { id: string; name: string }[] };
-      id = j.tables?.find((t) => t.name === tabela)?.id ?? null;
+      const nome = tabela.trim().toLowerCase();
+      const id = j.tables?.find((t) => t.name.trim().toLowerCase() === nome)?.id ?? null;
+      estado = { id, origem: id ? "meta" : "nao_encontrada" };
+    } else if (res.status === 403 || res.status === 401) {
+      estado = { id: null, origem: "sem_ambito" };
     }
   } catch {
-    id = null;
+    estado = { id: null, origem: "erro" };
   }
-  cacheSet(k, { id });
-  return id;
+  cacheSet(k, estado);
+  return estado;
 }
 
 export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
@@ -448,7 +463,8 @@ export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
       ano: ano || new Date().getFullYear(),
       formandos: contarFormandos(raw, mapa),
       temAvaliacoes: temAvaliacoesField(raw, mapa),
-      urlOrigem: tblId ? `https://airtable.com/${baseId}/${tblId}/${id}` : `https://airtable.com/${baseId}/${id}`,
+      // Sem id da tabela o Airtable não abre o registo; abre-se a base, que existe sempre.
+      urlOrigem: tblId ? `https://airtable.com/${baseId}/${tblId}/${id}` : `https://airtable.com/${baseId}`,
     };
   }
 
@@ -467,7 +483,9 @@ export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
       }
       const qsAcoes = [camposQs, ...extras].filter(Boolean).join("&");
       const recs = await listarTodos(token, baseId, tblAcoes, qsAcoes, filtros, false, mapa);
-      const tblId = await idDaTabela(token, baseId, tblAcoes);
+      const estadoTbl = await idDaTabela(token, baseId, tblAcoes);
+      idsTabelas.set(cacheKey, estadoTbl);
+      const tblId = estadoTbl.id;
       const acoes: Acao[] = [];
       const acaoNameId = new Map<string, string>();
       for (const rec of recs) {
