@@ -19,8 +19,9 @@ export function textoEstado(c: CartaoQuadro): { texto: string; cls: string } {
   switch (c.estado) {
     case "futura": return { texto: `Entra daqui a ${plural(c.entraEm ?? 0, "dia", "dias")}`, cls: "due" };
     case "done": return { texto: `Concluída há ${plural(c.concluidaHa ?? 0, "dia", "dias")}`, cls: "due" };
-    case "blocked": return { texto: `↯ ${c.motivo || "Bloqueada"}`, cls: "due red" };
-    case "error": return { texto: `↯ ${c.motivo || "Erro"}`, cls: "due red" };
+    // O motivo vem dos registos e pode ser longo ou ter nomes: fica só no detalhe do cartão.
+    case "blocked": return { texto: "↯ Bloqueada. Abre para mais detalhes.", cls: "due red" };
+    case "error": return { texto: "↯ Erros detetados. Abre para mais detalhes.", cls: "due red" };
     case "late": return { texto: `Atrasado ${c.dias ?? 0}d`, cls: "due red" };
     case "today": return { texto: "Hoje", cls: "due hot" };
     default:
