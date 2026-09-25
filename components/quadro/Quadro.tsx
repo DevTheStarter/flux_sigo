@@ -102,18 +102,21 @@ export function Quadro() {
   const cartoes = useMemo(() => dados?.cartoes ?? [], [dados]);
 
   const daVista = useMemo(() => cartoes.filter((c) => cumpre(c, vista?.condicoes ?? [])), [cartoes, vista]);
+  // Atrasadas há mais de dois meses: fora do quadro e dos contadores até se pedir para as ver.
+  const ehAntiga = (c: CartaoQuadro) => c.estado === "late" && (c.dias ?? 0) > DIAS_ATRASO_ANTIGO;
+  const consideradas = useMemo(() => (verAntigas ? daVista : daVista.filter((c) => !ehAntiga(c))), [daVista, verAntigas]);
   const contadores = {
-    atrasadas: daVista.filter((c) => c.estado === "late" || c.estado === "error").length,
-    hoje: daVista.filter((c) => c.estado === "today").length,
-    bloqueadas: daVista.filter((c) => c.estado === "blocked").length,
+    atrasadas: consideradas.filter((c) => c.estado === "late" || c.estado === "error").length,
+    hoje: consideradas.filter((c) => c.estado === "today").length,
+    bloqueadas: consideradas.filter((c) => c.estado === "blocked").length,
   };
   const q = pesquisa.trim().toLowerCase();
   const visiveis = useMemo(
     () =>
-      daVista
+      consideradas
         .filter((c) => cumpreFiltroRapido(c, filtro))
         .filter((c) => !q || c.acao.nome.toLowerCase().includes(q) || c.acao.codigoCurso.toLowerCase().includes(q)),
-    [daVista, filtro, q]
+    [consideradas, filtro, q]
   );
 
   function colunas() {
@@ -121,10 +124,8 @@ export function Quadro() {
       let items = visiveis.filter((c) => c.col === i || (i === 5 && c.col === 6));
       let escondidas = 0;
       let futuras = 0;
-      // Atrasadas há mais de dois meses: escondidas atrás de uma ligação, como as concluídas antigas.
-      const ehAntiga = (c: CartaoQuadro) => c.estado === "late" && (c.dias ?? 0) > DIAS_ATRASO_ANTIGO;
-      const antigas = items.filter(ehAntiga).length;
-      if (!verAntigas) items = items.filter((c) => !ehAntiga(c));
+      // Quantas atrasadas antigas há nesta coluna (na vista, antes de esconder), para a ligação no fundo.
+      const antigas = daVista.filter((c) => ehAntiga(c) && (c.col === i || (i === 5 && c.col === 6))).length;
       if (i === 5 && !verTodas) {
         escondidas = items.filter((c) => c.estado === "done" && (c.concluidaHa ?? 0) > 7).length;
         items = items.filter((c) => !(c.estado === "done" && (c.concluidaHa ?? 0) > 7));
