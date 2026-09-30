@@ -288,6 +288,13 @@ table.kv td:last-child { text-align: right; }
 .crow select { flex: 1; min-width: 0; }
 .crow .del { color: var(--muted); font-size: 16px; padding: 0 5px; flex-shrink: 0; }
 .crow .del:hover { color: var(--fg); }
+.cbloco { margin-bottom: 6px; }
+.cvals { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 10px; }
+.cval { position: relative; border: 0.5px solid var(--ls); border-radius: 4px; padding: 4px 10px; font-size: 12px; color: var(--soft); cursor: pointer; user-select: none; }
+.cval:hover { border-color: var(--fg); color: var(--fg); }
+.cval.on { border-color: var(--fg); color: var(--fg); background: var(--hover); }
+.cval input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; }
+.cval:has(input:focus-visible) { outline: 1.5px solid var(--fg); outline-offset: 1px; }
 .err-msg { font-size: 12px; color: var(--red); margin-top: 10px; }
 .ok-msg { font-size: 12px; color: var(--soft); margin-top: 10px; }
 
