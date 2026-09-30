@@ -171,6 +171,7 @@ export interface Database {
           criada_por: string | null;
           nome: string;
           condicoes: Json;
+          modo: string;
           fixa: boolean;
           criada_em: string;
         };
@@ -180,6 +181,7 @@ export interface Database {
           criada_por?: string | null;
           nome: string;
           condicoes?: Json;
+          modo?: string;
           fixa?: boolean;
           criada_em?: string;
         };
@@ -189,6 +191,7 @@ export interface Database {
           criada_por?: string | null;
           nome?: string;
           condicoes?: Json;
+          modo?: string;
           fixa?: boolean;
           criada_em?: string;
         };

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { CartaoQuadro } from "../../app/api/quadro/route";
-import { CAMPOS_VISTA, normalizarCondicoes, opcoesCampo, OPERADORES_VISTA, rotuloValor, type Condicao, type Vista } from "../../lib/cliente/vistas";
+import { CAMPOS_VISTA, normalizarCondicoes, opcoesCampo, OPERADORES_VISTA, rotuloValor, type Condicao, type ModoVista, type Vista } from "../../lib/cliente/vistas";
 import { Modal } from "../ui/Modal";
 
 export function VistaModal({
@@ -14,12 +14,13 @@ export function VistaModal({
   vista: Vista | null;
   cartoes: CartaoQuadro[];
   onClose: () => void;
-  onGuardar: (nome: string, condicoes: Condicao[], id: string | null) => Promise<void>;
+  onGuardar: (nome: string, condicoes: Condicao[], modo: ModoVista, id: string | null) => Promise<void>;
 }) {
   const [nome, setNome] = useState(vista?.nome ?? "");
   const [conds, setConds] = useState<Condicao[]>(
     vista ? vista.condicoes.map((c) => ({ ...c, vals: [...c.vals] })) : [{ campo: "ano", op: "em", vals: opcoesCampo("ano", cartoes).slice(0, 1) }],
   );
+  const [modo, setModo] = useState<ModoVista>(vista?.modo ?? "e");
   const [aGuardar, setAGuardar] = useState(false);
 
   function mudar(i: number, patch: Partial<Condicao>) {
@@ -41,7 +42,7 @@ export function VistaModal({
 
   async function guardar() {
     setAGuardar(true);
-    await onGuardar(nome.trim() || "Vista sem nome", normalizarCondicoes(conds), vista?.id ?? null);
+    await onGuardar(nome.trim() || "Vista sem nome", normalizarCondicoes(conds, modo), modo, vista?.id ?? null);
     setAGuardar(false);
   }
 
@@ -54,6 +55,15 @@ export function VistaModal({
         </div>
         <span className="fld-l">Condições</span>
         {conds.length === 0 ? <p className="fld-h" style={{ margin: "0 0 4px" }}>Nenhuma condição. Vai mostrar todas as ações.</p> : null}
+        {conds.length >= 2 ? (
+          <div className="modo" role="radiogroup" aria-label="Como combinar as condições">
+            <span className="modo-l">Mostrar ações que cumprem</span>
+            <div className="seg">
+              <button type="button" role="radio" aria-checked={modo === "e"} className={"seg-b" + (modo === "e" ? " on" : "")} onClick={() => setModo("e")}>todas as condições</button>
+              <button type="button" role="radio" aria-checked={modo === "ou"} className={"seg-b" + (modo === "ou" ? " on" : "")} onClick={() => setModo("ou")}>qualquer condição</button>
+            </div>
+          </div>
+        ) : null}
         {conds.map((c, i) => {
           const opcoes = opcoesCampo(c.campo, cartoes);
           // Valores guardados que já não existem nos cartões continuam visíveis para poderem ser retirados.
@@ -61,6 +71,7 @@ export function VistaModal({
           const todas = [...opcoes, ...extra];
           return (
             <div className="cbloco" key={i}>
+              {i > 0 ? <div className="cbloco-modo">{modo === "ou" ? "ou" : "e"}</div> : null}
               <div className="crow">
                 <select value={c.campo} onChange={(e) => mudar(i, { campo: e.target.value as Condicao["campo"] })} aria-label="Campo">
                   {CAMPOS_VISTA.map((f) => <option key={f.k} value={f.k}>{f.rotulo}</option>)}
@@ -93,8 +104,9 @@ export function VistaModal({
           + Adicionar condição
         </button>
         <p className="fld-h">
-          Cada condição pode ter vários valores: basta um deles bater certo. Uma ação de formação aparece na vista se cumprir todas as condições.
-          Sem condições, aparecem todas. As vistas são partilhadas com a vossa equipa.
+          Cada condição pode ter vários valores: basta um deles bater certo.
+          {modo === "ou" ? " Uma ação de formação aparece na vista se cumprir qualquer uma das condições." : " Uma ação de formação aparece na vista se cumprir todas as condições."}
+          {" "}Sem condições, aparecem todas. As vistas são partilhadas com a vossa equipa.
         </p>
       </div>
       <div className="m-f">

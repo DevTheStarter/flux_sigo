@@ -187,7 +187,7 @@ Phases 1 and 2 are parallel but occupy separate columns. A card sits in the firs
 
 ### 4.5 Views
 
-A view is a named list of conditions, all of which must hold (AND). Fields: `ano`, `formato`, `tipo`, `estado`, `diasSemana`. Each condition holds one or more values picked from the loaded actions: `em` (the field is one of the values) or `fora` (the field is none of them). Values are stored as a JSON array. On save, conditions with the same field and operator are merged into one and conditions with no values are dropped. Older stored shapes (`=`, `≠`, and `em` with a comma-separated string) are still read.
+A view is a named list of conditions combined in one of two modes, chosen per view: `e` (all conditions must hold, AND, the default) or `ou` (any one condition is enough, OR). The mode selector only appears once a view has two or more conditions. Fields: `ano`, `formato`, `tipo`, `estado`, `diasSemana`. Each condition holds one or more values picked from the loaded actions: `em` (the field is one of the values) or `fora` (the field is none of them). Values are stored as a JSON array. On save, conditions with no values are dropped and `em` conditions on the same field are merged into one; `fora` conditions on the same field are merged only in `e` mode, since in `ou` mode "not A or not B" would match everything. Older stored shapes (`=`, `≠`, and `em` with a comma-separated string) are still read.
 
 Two views are seeded per tenant: **Todas** (no conditions, cannot be deleted) and **A precisar de atenção** (`estado em late,today,blocked,error`). Users create, edit and delete their own; views are shared within the tenant.
 

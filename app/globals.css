@@ -295,6 +295,16 @@ table.kv td:last-child { text-align: right; }
 .cval.on { border-color: var(--fg); color: var(--fg); background: var(--hover); }
 .cval input { position: absolute; opacity: 0; width: 0; height: 0; margin: 0; }
 .cval:has(input:focus-visible) { outline: 1.5px solid var(--fg); outline-offset: 1px; }
+.cbloco-modo { font-size: 11px; color: var(--muted); margin: 2px 0 7px; padding-left: 2px; }
+.modo { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; margin: 0 0 12px; }
+.modo-l { font-size: 11px; color: var(--muted); }
+.seg { display: inline-flex; border: 0.5px solid var(--ls); border-radius: 4px; overflow: hidden; }
+.seg-b { font-size: 11px; padding: 4px 10px; color: var(--muted); background: transparent; border: 0; cursor: pointer; }
+.seg-b + .seg-b { border-left: 0.5px solid var(--ls); }
+.seg-b:hover { color: var(--fg); }
+.seg-b.on { color: var(--bg); background: var(--fg); }
+.condg { display: inline-flex; align-items: center; gap: 7px; }
+.cond-modo { font-size: 11px; color: var(--muted); }
 .err-msg { font-size: 12px; color: var(--red); margin-top: 10px; }
 .ok-msg { font-size: 12px; color: var(--soft); margin-top: 10px; }
 

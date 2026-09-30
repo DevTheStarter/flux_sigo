@@ -1,5 +1,5 @@
 /**
- * Vistas (§4.5): lista de condições, todas obrigatórias (AND).
+ * Vistas (§4.5): lista de condições combinadas em modo `e` (todas, AND) ou `ou` (qualquer, OR).
  * Campos: ano, formato, tipo, estado, diasSemana.
  * Cada condição aceita vários valores: `em` (é um de) ou `fora` (não é nenhum de).
  */
@@ -7,6 +7,8 @@ import type { CartaoQuadro } from "../../app/api/quadro/route";
 
 export type CampoVista = "ano" | "formato" | "tipo" | "estado" | "diasSemana";
 export type OperadorVista = "em" | "fora";
+/** e = todas as condições (AND); ou = qualquer condição (OR) */
+export type ModoVista = "e" | "ou";
 
 export interface Condicao {
   campo: CampoVista;
@@ -19,6 +21,7 @@ export interface Vista {
   id: string;
   nome: string;
   condicoes: Condicao[];
+  modo: ModoVista;
   fixa: boolean;
 }
 
@@ -61,12 +64,19 @@ function valorCampo(c: CartaoQuadro, campo: CampoVista): string {
   }
 }
 
-export function cumpre(c: CartaoQuadro, condicoes: Condicao[]): boolean {
-  return condicoes.every((cond) => {
-    if (cond.vals.length === 0) return true;
-    const tem = cond.vals.includes(valorCampo(c, cond.campo));
-    return cond.op === "fora" ? !tem : tem;
-  });
+function cumpreUma(c: CartaoQuadro, cond: Condicao): boolean {
+  const tem = cond.vals.includes(valorCampo(c, cond.campo));
+  return cond.op === "fora" ? !tem : tem;
+}
+
+export function cumpre(c: CartaoQuadro, condicoes: Condicao[], modo: ModoVista = "e"): boolean {
+  const ativas = condicoes.filter((cond) => cond.vals.length > 0);
+  if (ativas.length === 0) return true;
+  return modo === "ou" ? ativas.some((cond) => cumpreUma(c, cond)) : ativas.every((cond) => cumpreUma(c, cond));
+}
+
+export function lerModo(raw: unknown): ModoVista {
+  return raw === "ou" ? "ou" : "e";
 }
 
 function ehCampo(k: string): k is CampoVista {
@@ -117,15 +127,18 @@ export function lerCondicoes(raw: unknown): Condicao[] {
 
 /**
  * Prepara as condições para guardar: remove valores vazios e duplicados, descarta
- * condições sem valores e funde condições com o mesmo campo e operador
- * (duas linhas "Formato é Curso" + "Formato é Curso Lite" viram uma só).
+ * condições sem valores e funde condições equivalentes com o mesmo campo:
+ * - "é" funde-se em qualquer modo ("Formato é Curso" + "Formato é Curso Lite" → uma só);
+ * - "não é" só se funde em modo `e` (em modo `ou`, "não é A" ou "não é B" aceita tudo,
+ *   o que não é o mesmo que "não é A nem B").
  */
-export function normalizarCondicoes(condicoes: Condicao[]): Condicao[] {
+export function normalizarCondicoes(condicoes: Condicao[], modo: ModoVista = "e"): Condicao[] {
   const out: Condicao[] = [];
   for (const c of condicoes) {
     const vals = limpar(c.vals);
     if (vals.length === 0) continue;
-    const igual = out.find((o) => o.campo === c.campo && o.op === c.op);
+    const fundir = c.op === "em" || modo === "e";
+    const igual = fundir ? out.find((o) => o.campo === c.campo && o.op === c.op) : undefined;
     if (igual) igual.vals = limpar([...igual.vals, ...vals]);
     else out.push({ campo: c.campo, op: c.op, vals });
   }
@@ -146,6 +159,8 @@ export function opcoesCampo(campo: CampoVista, cartoes: CartaoQuadro[]): string[
 export function rotuloValor(campo: CampoVista, v: string): string {
   return campo === "estado" ? ROTULO_ESTADO[v] ?? v : v;
 }
+
+export const ROTULO_MODO: Record<ModoVista, string> = { e: "e", ou: "ou" };
 
 export function textoCondicao(c: Condicao): string {
   const vals = c.vals.map((v) => rotuloValor(c.campo, v));

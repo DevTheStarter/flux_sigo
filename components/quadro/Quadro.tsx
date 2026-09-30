@@ -5,7 +5,7 @@ import { createClient } from "../../lib/supabase/client";
 import { useSessao } from "../../lib/cliente/sessao";
 import type { CartaoQuadro, RespostaQuadro } from "../../app/api/quadro/route";
 import { COLUNAS_FLOWS } from "../../lib/cliente/flows";
-import { cumpre, cumpreFiltroRapido, lerCondicoes, textoCondicao, type FiltroRapido, type Vista } from "../../lib/cliente/vistas";
+import { cumpre, cumpreFiltroRapido, lerCondicoes, lerModo, ROTULO_MODO, textoCondicao, type FiltroRapido, type Vista } from "../../lib/cliente/vistas";
 import { useToast } from "../ui/Toast";
 import { Cartao } from "./Cartao";
 import { DetalheCartao } from "./DetalheCartao";
@@ -62,11 +62,12 @@ export function Quadro() {
   }, [s.entidadeId]);
 
   const carregarVistas = useCallback(async () => {
-    const r = await supabase.from("vistas").select("id, nome, condicoes, fixa").eq("entidade_id", s.entidadeId).order("criada_em", { ascending: true });
-    const lista: Vista[] = ((r.data ?? []) as { id: string; nome: string; condicoes: unknown; fixa: boolean }[]).map((v) => ({
+    const r = await supabase.from("vistas").select("id, nome, condicoes, modo, fixa").eq("entidade_id", s.entidadeId).order("criada_em", { ascending: true });
+    const lista: Vista[] = ((r.data ?? []) as { id: string; nome: string; condicoes: unknown; modo: unknown; fixa: boolean }[]).map((v) => ({
       id: v.id,
       nome: v.nome,
       condicoes: lerCondicoes(v.condicoes),
+      modo: lerModo(v.modo),
       fixa: !!v.fixa,
     }));
     lista.sort((a, b) => Number(b.fixa) - Number(a.fixa));
@@ -101,7 +102,7 @@ export function Quadro() {
   const vista = vistas.find((v) => v.id === vistaId) ?? null;
   const cartoes = useMemo(() => dados?.cartoes ?? [], [dados]);
 
-  const daVista = useMemo(() => cartoes.filter((c) => cumpre(c, vista?.condicoes ?? [])), [cartoes, vista]);
+  const daVista = useMemo(() => cartoes.filter((c) => cumpre(c, vista?.condicoes ?? [], vista?.modo ?? "e")), [cartoes, vista]);
   // Atrasadas há mais de dois meses: fora do quadro e dos contadores até se pedir para as ver.
   const ehAntiga = (c: CartaoQuadro) => c.estado === "late" && (c.dias ?? 0) > DIAS_ATRASO_ANTIGO;
   const consideradas = useMemo(() => (verAntigas ? daVista : daVista.filter((c) => !ehAntiga(c))), [daVista, verAntigas]);
@@ -143,13 +144,13 @@ export function Quadro() {
     });
   }
 
-  async function guardarVista(nome: string, condicoes: Vista["condicoes"], id: string | null) {
+  async function guardarVista(nome: string, condicoes: Vista["condicoes"], modo: Vista["modo"], id: string | null) {
     if (id) {
-      const r = await (supabase as any).from("vistas").update({ nome, condicoes }).eq("id", id);
+      const r = await (supabase as any).from("vistas").update({ nome, condicoes, modo }).eq("id", id);
       if (r.error) { toast("Não foi possível guardar a vista"); return; }
       toast("Vista guardada");
     } else {
-      const r = await (supabase as any).from("vistas").insert({ entidade_id: s.entidadeId, criada_por: s.id, nome, condicoes }).select("id").single();
+      const r = await (supabase as any).from("vistas").insert({ entidade_id: s.entidadeId, criada_por: s.id, nome, condicoes, modo }).select("id").single();
       if (r.error) { toast(r.error.code === "23505" ? "Já existe uma vista com esse nome" : "Não foi possível criar a vista"); return; }
       setVistaId(r.data.id as string);
       toast("Vista criada");
@@ -212,7 +213,12 @@ export function Quadro() {
         {vista && vista.condicoes.length ? (
           <>
             <span>Condições:</span>
-            {vista.condicoes.map((c, i) => <span key={i} className="cond">{textoCondicao(c)}</span>)}
+            {vista.condicoes.map((c, i) => (
+              <span key={i} className="condg">
+                {i > 0 ? <span className="cond-modo">{ROTULO_MODO[vista.modo]}</span> : null}
+                <span className="cond">{textoCondicao(c)}</span>
+              </span>
+            ))}
             {!vista.fixa ? <button type="button" className="link" onClick={() => setEditarVista({ vista })}>editar</button> : null}
           </>
         ) : !filtro ? (

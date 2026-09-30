@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { CartaoQuadro } from "../app/api/quadro/route";
-import { cumpre, lerCondicoes, normalizarCondicoes, textoCondicao, type Condicao } from "../lib/cliente/vistas";
+import { cumpre, lerCondicoes, lerModo, normalizarCondicoes, textoCondicao, type Condicao } from "../lib/cliente/vistas";
 
 function cartao(formato: string, estado: CartaoQuadro["estado"] = "ok", diasSemana = "Seg, Qua"): CartaoQuadro {
   return { acao: { formato, ano: 2026, tipo: "Curso", diasSemana }, estado } as unknown as CartaoQuadro;
@@ -37,6 +37,22 @@ describe("cumpre", () => {
     expect(cumpre(cartao("Curso", "late"), conds)).toBe(true);
     expect(cumpre(cartao("Curso", "ok"), conds)).toBe(false);
     expect(cumpre(cartao("Imersão", "late"), conds)).toBe(false);
+  });
+
+  it("modo 'ou' aceita a ação se cumprir qualquer condição", () => {
+    const conds: Condicao[] = [
+      { campo: "formato", op: "em", vals: ["Curso"] },
+      { campo: "estado", op: "em", vals: ["late"] },
+    ];
+    expect(cumpre(cartao("Curso", "ok"), conds, "ou")).toBe(true);
+    expect(cumpre(cartao("Imersão", "late"), conds, "ou")).toBe(true);
+    expect(cumpre(cartao("Imersão", "ok"), conds, "ou")).toBe(false);
+    expect(cumpre(cartao("Curso", "ok"), conds, "e")).toBe(false);
+  });
+
+  it("modo 'ou' ignora condições vazias e sem condições aceita tudo", () => {
+    expect(cumpre(imersao, [{ campo: "formato", op: "em", vals: [] }], "ou")).toBe(true);
+    expect(cumpre(imersao, [{ campo: "formato", op: "em", vals: [] }, { campo: "formato", op: "em", vals: ["Curso"] }], "ou")).toBe(false);
   });
 
   it("condição sem valores é ignorada", () => {
@@ -98,6 +114,31 @@ describe("normalizarCondicoes", () => {
       { campo: "formato", op: "em", vals: ["Curso"] },
       { campo: "formato", op: "fora", vals: ["Imersão"] },
     ]);
+  });
+});
+
+describe("normalizarCondicoes em modo ou", () => {
+  it("funde 'é' mas mantém 'não é' separados", () => {
+    const out = normalizarCondicoes([
+      { campo: "formato", op: "em", vals: ["Curso"] },
+      { campo: "formato", op: "em", vals: ["Curso Lite"] },
+      { campo: "tipo", op: "fora", vals: ["A"] },
+      { campo: "tipo", op: "fora", vals: ["B"] },
+    ], "ou");
+    expect(out).toEqual([
+      { campo: "formato", op: "em", vals: ["Curso", "Curso Lite"] },
+      { campo: "tipo", op: "fora", vals: ["A"] },
+      { campo: "tipo", op: "fora", vals: ["B"] },
+    ]);
+  });
+});
+
+describe("lerModo", () => {
+  it("só aceita 'ou'; tudo o resto é 'e'", () => {
+    expect(lerModo("ou")).toBe("ou");
+    expect(lerModo("e")).toBe("e");
+    expect(lerModo(null)).toBe("e");
+    expect(lerModo("OR")).toBe("e");
   });
 });
 
