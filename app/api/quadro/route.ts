@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClientServer } from "../../../lib/supabase/server";
-import { criarAirtable, ultimaLeituraDe } from "../../../lib/dados/airtable";
+import { criarAirtable, invalidarCache, ultimaLeituraDe } from "../../../lib/dados/airtable";
 import { derivar, NOMES_FASES, type Cartao } from "../../../lib/dados/derivar";
 import { COLUNAS_CONFIG_FONTE, configFonte, tokenDaCredencial, type ConfigFonteRow } from "../../../lib/dados/credencial";
 import type { Acao, Registo } from "../../../lib/dados/interface";
@@ -37,8 +37,13 @@ function vazio(semLigacao: boolean, erro?: string): RespostaQuadro {
   };
 }
 
-export async function GET() {
+/**
+ * GET: o quadro da entidade. Com `?fresco=1` ignora a cache de 15 minutos e
+ * vai à fonte (o quadro pede-o ao abrir ou recarregar a página).
+ */
+export async function GET(request: Request) {
   try {
+    const fresco = new URL(request.url).searchParams.get("fresco") === "1";
     const supabase = await createClientServer();
     const authRes = await supabase.auth.getUser().catch(() => null);
     const user = authRes?.data?.user ?? null;
@@ -66,6 +71,7 @@ export async function GET() {
     }
     if (!token) return NextResponse.json(vazio(true));
 
+    if (fresco) invalidarCache(fonteCfg.baseId);
     const fonte = criarAirtable({ ...fonteCfg, token });
     let acoes: Acao[];
     let registos: Registo[];

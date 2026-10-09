@@ -6,6 +6,7 @@ import { useSessao } from "../../lib/cliente/sessao";
 import type { CartaoQuadro, RespostaQuadro } from "../../app/api/quadro/route";
 import { COLUNAS_FLOWS } from "../../lib/cliente/flows";
 import { cumpre, cumpreFiltroRapido, lerCondicoes, lerModo, ROTULO_MODO, textoCondicao, type FiltroRapido, type Vista } from "../../lib/cliente/vistas";
+import { EVENTO_SINCRONIZADO } from "../../lib/cliente/eventos";
 import { useToast } from "../ui/Toast";
 import { Cartao } from "./Cartao";
 import { DetalheCartao } from "./DetalheCartao";
@@ -46,14 +47,16 @@ export function Quadro() {
   const [editarVista, setEditarVista] = useState<{ vista: Vista | null } | null>(null);
   const [apagarVista, setApagarVista] = useState<Vista | null>(null);
 
-  const carregarQuadro = useCallback(async () => {
+  /** `fresco` ignora a cache de 15 minutos do servidor e lê a fonte de novo. */
+  const carregarQuadro = useCallback(async (fresco = false) => {
     setErro(null);
     try {
-      const r = await fetch("/api/quadro", { cache: "no-store" });
+      const r = await fetch(fresco ? "/api/quadro?fresco=1" : "/api/quadro", { cache: "no-store" });
       const json = (await r.json()) as RespostaQuadro & { erro?: string };
       if (!r.ok) throw new Error(json.erro || `Erro ${r.status}`);
       setDados(json);
       try { sessionStorage.setItem(`${CHAVE_CACHE}:${s.entidadeId}`, JSON.stringify(json)); } catch { /* ignorar */ }
+      if (fresco && !json.semLigacao) window.dispatchEvent(new Event(EVENTO_SINCRONIZADO));
     } catch (e) {
       setErro((e as Error).message);
     } finally {
@@ -81,10 +84,11 @@ export function Quadro() {
     });
   }, [supabase, s.entidadeId]);
 
+  // Ao abrir ou recarregar a página: pinta já o que está em sessionStorage e vai à fonte (sem cache).
   useEffect(() => {
     const cache = lerCache(s.entidadeId);
     if (cache) { setDados(cache); setACarregar(false); }
-    void carregarQuadro();
+    void carregarQuadro(true);
     void carregarVistas();
   }, [carregarQuadro, carregarVistas, s.entidadeId]);
 
@@ -278,7 +282,7 @@ export function Quadro() {
       {erro ? (
         <div className="aviso-quadro">
           <span style={{ color: "var(--red)" }}>Não foi possível ler o quadro: {erro}.</span>{" "}
-          <button type="button" className="link" onClick={() => { setACarregar(true); void carregarQuadro(); }}>Tentar novamente</button>
+          <button type="button" className="link" onClick={() => { setACarregar(true); void carregarQuadro(true); }}>Tentar novamente</button>
         </div>
       ) : semLigacao && !aCarregar ? (
         <div className="aviso-quadro">

@@ -471,7 +471,7 @@ Nothing in `Acao` is personal data. `Registo.detalhe` may contain names — see 
 - Per-tenant field mapping from `config_entidade.mapa_campos`; entities name columns differently.
 - Returns only interface types. No source-specific object may escape the adapter. Add a lint rule.
 - `verificarLigacao()` reports the students table being reachable as a **configuration warning**, not success.
-- 15-minute in-memory cache per tenant. Never on disk. A restart clears it.
+- 15-minute in-memory cache per tenant. Never on disk. A restart clears it. Opening or reloading the board (`GET /api/quadro?fresco=1`) and "Sincronizar agora" bypass it and read the source again.
 - Unknown `Flow` or `Status` option values are logged and treated as unknown, never silently ignored.
 
 ### 7.3 Airtable adapter
@@ -815,7 +815,7 @@ Dark theme under `prefers-color-scheme` and `[data-theme]`, choice persisted in 
 
 ### 18.3 Navigation
 
-Desktop: top bar with logo (links to Quadro), **Quadro**, **Documentação**, and for staff **Entidades**; right side: sync status with tooltip ("O quadro lê a base de dados a cada 15 minutos…"; on failure, red with a "repetir" link), bell, avatar with dropdown (Perfil, Equipa, Notificações, Relatório semanal, Prazos, Ligação de dados, Mudar tema, Terminar sessão). Staff sees a small "TheStarter" tag next to the logo.
+Desktop: top bar with logo (links to Quadro), **Quadro**, **Documentação**, and for staff **Entidades**; right side: sync status with tooltip ("Abrir ou recarregar o quadro lê a base de dados de novo…"; on failure, red with a "repetir" link), bell, avatar with dropdown (Perfil, Equipa, Notificações, Relatório semanal, Prazos, Ligação de dados, Mudar tema, Terminar sessão). Staff sees a small "TheStarter" tag next to the logo.
 
 Mobile (≤ 760px): top bar is logo and bell only. Fixed bottom nav with icons: Quadro, Documentos, Perfil, plus Entidades for staff. Board becomes a single vertical list with a header per phase and full-width cards. Card detail and every modal become full-screen with a sticky header and ×; the bottom nav hides while one is open. Views tabs and settings tabs scroll horizontally.
 

@@ -8,6 +8,7 @@ import { relativo } from "../../lib/cliente/datas";
 import { useToast } from "../ui/Toast";
 import { Notificacoes } from "./Notificacoes";
 import type { EstadoLigacaoResposta } from "../../app/api/ligacao/route";
+import { EVENTO_SINCRONIZADO } from "../../lib/cliente/eventos";
 
 const MENU: { rotulo: string; tab: string }[] = [
   { rotulo: "Perfil", tab: "perfil" },
@@ -62,7 +63,9 @@ export function TopBar() {
     void lerLigacao();
     const t = setInterval(() => { setAgora(new Date()); void lerLigacao(); }, 5 * 60 * 1000);
     const tick = setInterval(() => setAgora(new Date()), 30 * 1000);
-    return () => { clearInterval(t); clearInterval(tick); };
+    const aoSincronizar = () => { setAgora(new Date()); void lerLigacao(); };
+    window.addEventListener(EVENTO_SINCRONIZADO, aoSincronizar);
+    return () => { clearInterval(t); clearInterval(tick); window.removeEventListener(EVENTO_SINCRONIZADO, aoSincronizar); };
   }, [lerLigacao]);
 
   useEffect(() => {
@@ -82,7 +85,7 @@ export function TopBar() {
   if (ligacao?.configurada) {
     if (ligacao.ok) {
       syncTexto = ligacao.ultimaLeitura ? `Sincronizado ${relativo(ligacao.ultimaLeitura, agora)}` : "Sincronizado";
-      syncTip = "O quadro lê a base de dados a cada 15 minutos. A próxima leitura acontece quando alguém abrir o quadro depois disso.";
+      syncTip = "Abrir ou recarregar o quadro lê a base de dados de novo. Fora disso, os dados ficam em cache 15 minutos.";
     } else {
       syncErro = true;
       syncTexto = "Falha na sincronização";
