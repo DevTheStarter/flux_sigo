@@ -5,6 +5,7 @@ import { createClient } from "../../lib/supabase/client";
 import { useSessao } from "../../lib/cliente/sessao";
 import type { CartaoQuadro, RespostaQuadro } from "../../app/api/quadro/route";
 import { COLUNAS_FLOWS } from "../../lib/cliente/flows";
+import { DIAS_ATRASO_ANTIGO, DIAS_CONCLUIDA_VISIVEL } from "../../lib/dados/derivar";
 import { cumpre, cumpreFiltroRapido, lerCondicoes, lerModo, ROTULO_MODO, textoCondicao, type FiltroRapido, type Vista } from "../../lib/cliente/vistas";
 import { EVENTO_SINCRONIZADO } from "../../lib/cliente/eventos";
 import { useToast } from "../ui/Toast";
@@ -14,8 +15,6 @@ import { VistaModal } from "./VistaModal";
 import { Modal } from "../ui/Modal";
 
 const LS_VISTA = "fluxo-vista";
-/** atrasadas há mais de dois meses ficam escondidas por defeito (§4.4, mesma lógica das concluídas) */
-const DIAS_ATRASO_ANTIGO = 61;
 const CHAVE_CACHE = "fluxo-quadro";
 
 function lerCache(entidadeId: string): RespostaQuadro | null {
@@ -132,8 +131,9 @@ export function Quadro() {
       // Quantas atrasadas antigas há nesta coluna (na vista, antes de esconder), para a ligação no fundo.
       const antigas = daVista.filter((c) => ehAntiga(c) && (c.col === i || (i === 5 && c.col === 6))).length;
       if (i === 5 && !verTodas) {
-        escondidas = items.filter((c) => c.estado === "done" && (c.concluidaHa ?? 0) > 7).length;
-        items = items.filter((c) => !(c.estado === "done" && (c.concluidaHa ?? 0) > 7));
+        const concluidaAntiga = (c: CartaoQuadro) => c.estado === "done" && (c.concluidaHa ?? 0) > DIAS_CONCLUIDA_VISIVEL;
+        escondidas = items.filter(concluidaAntiga).length;
+        items = items.filter((c) => !concluidaAntiga(c));
       }
       if (i === 0) {
         futuras = items.filter((c) => c.estado === "futura").length;

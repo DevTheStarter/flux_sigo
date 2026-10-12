@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createClientServer } from "../../../../lib/supabase/server";
 import { createClientService } from "../../../../lib/supabase/service";
 import { log } from "../../../../lib/log";
-import { fonteDaEntidade } from "../../../../lib/cron/quadro";
+import { quadroDaEntidade } from "../../../../lib/cron/quadro";
+import { escondidaPorDefeito } from "../../../../lib/dados/derivar";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -76,17 +77,19 @@ export async function GET() {
     for (const p of (probs.data ?? []) as { entidade_id: string | null; estado: string }[]) {
       if (p.estado === "aberto" && p.entidade_id) abertos.set(p.entidade_id, (abertos.get(p.entidade_id) ?? 0) + 1);
     }
-    // §15 KPI "ações acompanhadas": só o número, via adaptador (cache de 15 min).
-    // Nunca chega aqui nome, estado ou registo de uma ação (§2.4).
+    // §15 KPI "ações acompanhadas": as ações que estão no quadro da entidade,
+    // sem as que o quadro esconde por defeito (§4.4: futuras, concluídas há mais
+    // de uma semana, atrasadas há mais de dois meses). O quadro vive só em
+    // memória durante o pedido e daqui sai apenas o número (§2.4).
     const contagens = new Map<string, number>();
     await Promise.all(
       ((ents.data ?? []) as { id: string; ativa: boolean }[])
         .filter((e) => e.ativa && fonte.get(e.id)?.configurada)
         .map(async (e) => {
           try {
-            const f = await fonteDaEntidade(sb, e.id);
-            if ("erro" in f) return;
-            contagens.set(e.id, await f.fonte.contarAcoes());
+            const q = await quadroDaEntidade(sb, e.id);
+            if (!q.ok) return;
+            contagens.set(e.id, q.cartoes.filter((c) => !escondidaPorDefeito(c)).length);
           } catch (err) {
             log.warn("entidades contar acoes", { entidade_id: e.id, err: (err as Error).message });
           }

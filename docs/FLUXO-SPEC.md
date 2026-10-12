@@ -183,7 +183,9 @@ Phases 1 and 2 are parallel but occupy separate columns. A card sits in the firs
 
 - **Done cards** show for 7 days after conclusion, then hide behind a link at the bottom of the Conclusão column: "Ver N concluídas há mais de uma semana". Clicking shows them; clicking again hides.
 - **Future cards** hide behind a link at the bottom of the Dados column: "Ver N futuras". Same toggle behaviour.
+- **Late cards older than two months** hide behind a link at the bottom of their column: "Ver N atrasadas há mais de dois meses". Same toggle behaviour. The header counters ignore them while hidden.
 - Column counts reflect what is visible.
+- The same "hidden by default" rule (`escondidaPorDefeito` in `lib/dados/derivar.ts`) decides what the staff KPI "ações acompanhadas" (§15) counts: hidden cards do not count.
 
 ### 4.5 Views
 
@@ -748,7 +750,7 @@ Entity list shows a pill per entity: "suporte", "sem suporte", or "setup · Nd" 
 
 Route `/entidades`, staff only.
 
-**KPIs:** active entities, users, actions tracked (sum of a `acoes_count` the adapter can report cheaply), entities with support, entities without signed contract.
+**KPIs:** active entities, users, actions tracked (sum, per active entity, of the cards on its board minus the ones §4.4 hides by default: future, done for more than a week, late for more than two months; only the number leaves the server), entities with support, entities without signed contract.
 
 **List:** name, activity dot (black active / red if last activity > 14 days / grey inactive), users, actions, source type, last activity, support pill, active pill, "sem contrato" pill when applicable.
 

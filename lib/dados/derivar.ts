@@ -113,6 +113,23 @@ export function derivar(
 
 const PRAZOS_DEFAULTS_PARCIAL: PartialPrazosCfg = {};
 
+/** concluídas ficam visíveis este número de dias; depois escondem-se atrás da ligação (§4.4) */
+export const DIAS_CONCLUIDA_VISIVEL = 7;
+/** atrasadas há mais de dois meses ficam escondidas por defeito (§4.4, mesma lógica das concluídas) */
+export const DIAS_ATRASO_ANTIGO = 61;
+
+/**
+ * §4.4: o que o quadro esconde por defeito. Futuras, concluídas há mais de uma
+ * semana e atrasadas há mais de dois meses. O mesmo critério serve o quadro e
+ * a contagem de "ações acompanhadas" (§15): o que está escondido não conta.
+ */
+export function escondidaPorDefeito(c: Pick<Cartao, "estado" | "dias" | "concluidaHa">): boolean {
+  if (c.estado === "futura") return true;
+  if (c.estado === "done") return (c.concluidaHa ?? 0) > DIAS_CONCLUIDA_VISIVEL;
+  if (c.estado === "late") return (c.dias ?? 0) > DIAS_ATRASO_ANTIGO;
+  return false;
+}
+
 export const NOMES_FASES: Record<number, string> = {
   0: "Dados",
   1: "Perfis",

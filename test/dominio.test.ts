@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Acao, Registo } from "../lib/dados/interface";
-import { derivar } from "../lib/dados/derivar";
+import { derivar, escondidaPorDefeito, DIAS_ATRASO_ANTIGO, DIAS_CONCLUIDA_VISIVEL } from "../lib/dados/derivar";
 import { calcularPrazo, PRAZOS_DEFAULTS, diasAte } from "../lib/dados/prazos";
 import { estimar, formatarDuracao } from "../lib/dados/estimar";
 
@@ -129,6 +129,36 @@ describe("§4.2 derivar()", () => {
     expect(r.col).toBe(5);
     expect(r.estado).toBe("ok");
     expect(r.dias).toBe(2);
+  });
+});
+
+describe("§4.4 escondidaPorDefeito()", () => {
+  it("futuras escondem-se sempre", () => {
+    expect(escondidaPorDefeito({ estado: "futura" })).toBe(true);
+  });
+  it("concluídas: visíveis uma semana, depois escondidas", () => {
+    expect(escondidaPorDefeito({ estado: "done", concluidaHa: DIAS_CONCLUIDA_VISIVEL })).toBe(false);
+    expect(escondidaPorDefeito({ estado: "done", concluidaHa: DIAS_CONCLUIDA_VISIVEL + 1 })).toBe(true);
+    expect(escondidaPorDefeito({ estado: "done" })).toBe(false);
+  });
+  it("atrasadas: visíveis dois meses, depois escondidas", () => {
+    expect(escondidaPorDefeito({ estado: "late", dias: DIAS_ATRASO_ANTIGO })).toBe(false);
+    expect(escondidaPorDefeito({ estado: "late", dias: DIAS_ATRASO_ANTIGO + 1 })).toBe(true);
+  });
+  it("o resto está sempre no quadro", () => {
+    for (const estado of ["ok", "today", "error", "blocked"] as const) {
+      expect(escondidaPorDefeito({ estado, dias: 400 })).toBe(false);
+    }
+  });
+  it("§15: a contagem de ações acompanhadas ignora as escondidas", () => {
+    const cartoes = [
+      { estado: "ok" as const, dias: 2 },
+      { estado: "late" as const, dias: 90 },
+      { estado: "done" as const, concluidaHa: 30 },
+      { estado: "futura" as const },
+      { estado: "blocked" as const },
+    ];
+    expect(cartoes.filter((c) => !escondidaPorDefeito(c)).length).toBe(2);
   });
 });
 

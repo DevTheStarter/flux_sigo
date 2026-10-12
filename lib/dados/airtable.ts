@@ -543,10 +543,6 @@ export function criarAirtable(cfg: AirtableCfg): FonteDeDados {
       return out;
     },
 
-    async contarAcoes(): Promise<number> {
-      return (await self.obterAcoes()).length;
-    },
-
     async verificarLigacao(): Promise<EstadoLigacao> {
       try {
         const agora = new Date().toISOString();
