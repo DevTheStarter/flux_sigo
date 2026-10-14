@@ -50,4 +50,11 @@ describe("§4.9 instrução curta", () => {
     c.acao.urlOrigem = null;
     expect(instrucaoCurta(c, valores).texto).toContain('para a ação de formação "Imersão UX"');
   });
+  it("link geral da base (sem id da tabela) não passa por link da ação", () => {
+    const c = cartao(0);
+    c.acao.urlOrigem = "https://airtable.com/appN5zpGoVaDyFy4W";
+    const { texto } = instrucaoCurta(c, valores);
+    expect(texto).toContain('para a ação de formação "Imersão UX"');
+    expect(texto).not.toContain("para a ação de formação https://airtable.com/appN5zpGoVaDyFy4W");
+  });
 });

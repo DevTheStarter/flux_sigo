@@ -14,10 +14,20 @@ export function atalhoFlow(fase: number): string {
   return `/flow-${fase}`;
 }
 
+/**
+ * Link da ação para a instrução: só serve se apontar para o registo da ação.
+ * Sem id da tabela, `urlOrigem` fica com o link geral da base (abre no cartão,
+ * mas não identifica a ação), e aí a instrução usa o nome entre aspas.
+ */
+export function linkDaAcao(a: CartaoQuadro["acao"]): string | null {
+  if (!a.urlOrigem) return null;
+  return a.urlOrigem.endsWith(`/${a.id}`) ? a.urlOrigem : null;
+}
+
 export function instrucaoCurta(c: CartaoQuadro, valores: Record<string, string>): { texto: string; faltam: string[] } {
   const a = c.acao;
   const fase = c.col;
-  const referencia = a.urlOrigem ?? `"${a.nome}"`;
+  const referencia = linkDaAcao(a) ?? `"${a.nome}"`;
   const ultimaLinha = fase === 0 ? `Segue as instruções do Flow 0` : `Segue as instruções do ${atalhoFlow(fase)}`;
   const modelo =
     `Executa o Flow ${fase} (${NOMES_FLOWS[fase]}) para a ação de formação ${referencia}\n\n` +
