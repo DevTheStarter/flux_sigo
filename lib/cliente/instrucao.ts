@@ -14,20 +14,28 @@ export function atalhoFlow(fase: number): string {
   return `/flow-${fase}`;
 }
 
+const RX_BASE = /app[A-Za-z0-9]{14}/;
+const RX_TBL = /^tbl[A-Za-z0-9]{14}$/;
+
 /**
- * Link da ação para a instrução: só serve se apontar para o registo da ação.
- * Sem id da tabela, `urlOrigem` fica com o link geral da base (abre no cartão,
- * mas não identifica a ação), e aí a instrução usa o nome entre aspas.
+ * Link da ação para a instrução: aponta sempre para o registo da ação, nunca
+ * para a base inteira. Usa o link da fonte quando já traz o registo; senão
+ * (sem id da tabela, `urlOrigem` fica com o link geral da base) constrói-o
+ * com a base, o id da tabela se estiver nas variáveis, e o id do registo.
  */
-export function linkDaAcao(a: CartaoQuadro["acao"]): string | null {
-  if (!a.urlOrigem) return null;
-  return a.urlOrigem.endsWith(`/${a.id}`) ? a.urlOrigem : null;
+export function linkDaAcao(a: CartaoQuadro["acao"], valores: Record<string, string> = {}): string | null {
+  const url = a.urlOrigem ?? "";
+  if (url && url.endsWith(`/${a.id}`)) return url;
+  const base = RX_BASE.exec(url)?.[0] ?? (RX_BASE.test(valores.CRM_BASE ?? "") ? RX_BASE.exec(valores.CRM_BASE!)![0] : null);
+  if (!base) return null;
+  const tbl = (valores.TBL_ACOES ?? "").trim();
+  return RX_TBL.test(tbl) ? `https://airtable.com/${base}/${tbl}/${a.id}` : `https://airtable.com/${base}/${a.id}`;
 }
 
 export function instrucaoCurta(c: CartaoQuadro, valores: Record<string, string>): { texto: string; faltam: string[] } {
   const a = c.acao;
   const fase = c.col;
-  const referencia = linkDaAcao(a) ?? `"${a.nome}"`;
+  const referencia = linkDaAcao(a, valores) ?? `"${a.nome}"`;
   const ultimaLinha = fase === 0 ? `Segue as instruções do Flow 0` : `Segue as instruções do ${atalhoFlow(fase)}`;
   const modelo =
     `Executa o Flow ${fase} (${NOMES_FLOWS[fase]}) para a ação de formação ${referencia}\n\n` +

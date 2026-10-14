@@ -45,16 +45,33 @@ describe("§4.9 instrução curta", () => {
     expect(texto.endsWith("Segue as instruções do /flow-3")).toBe(true);
     expect(texto).not.toContain("flow-3.md");
   });
-  it("sem link na fonte, usa o nome entre aspas", () => {
+  it("sem link na fonte nem base configurada, usa o nome entre aspas", () => {
     const c = cartao(1);
     c.acao.urlOrigem = null;
-    expect(instrucaoCurta(c, valores).texto).toContain('para a ação de formação "Imersão UX"');
+    expect(instrucaoCurta(c, { ...valores, CRM_BASE: "" }).texto).toContain('para a ação de formação "Imersão UX"');
   });
-  it("link geral da base (sem id da tabela) não passa por link da ação", () => {
+  it("link geral da base (sem id da tabela): constrói o link do registo com a base e o id", () => {
     const c = cartao(0);
     c.acao.urlOrigem = "https://airtable.com/appN5zpGoVaDyFy4W";
     const { texto } = instrucaoCurta(c, valores);
-    expect(texto).toContain('para a ação de formação "Imersão UX"');
-    expect(texto).not.toContain("para a ação de formação https://airtable.com/appN5zpGoVaDyFy4W");
+    expect(texto).toContain("para a ação de formação https://airtable.com/appN5zpGoVaDyFy4W/recTi2UkI4fJqWliR\n");
+  });
+  it("link geral da base com TBL_ACOES em id: link completo do registo", () => {
+    const c = cartao(0);
+    c.acao.urlOrigem = "https://airtable.com/appN5zpGoVaDyFy4W";
+    const { texto } = instrucaoCurta(c, { ...valores, TBL_ACOES: "tbl6854YSHuwz6t5K" });
+    expect(texto).toContain("para a ação de formação https://airtable.com/appN5zpGoVaDyFy4W/tbl6854YSHuwz6t5K/recTi2UkI4fJqWliR\n");
+  });
+  it("TBL_ACOES com nome (não id) não entra no link", () => {
+    const c = cartao(0);
+    c.acao.urlOrigem = "https://airtable.com/appN5zpGoVaDyFy4W";
+    const { texto } = instrucaoCurta(c, { ...valores, TBL_ACOES: "Ações de formação" });
+    expect(texto).toContain("para a ação de formação https://airtable.com/appN5zpGoVaDyFy4W/recTi2UkI4fJqWliR\n");
+  });
+  it("sem link na fonte mas com CRM_BASE: constrói o link do registo", () => {
+    const c = cartao(0);
+    c.acao.urlOrigem = null;
+    const { texto } = instrucaoCurta(c, valores);
+    expect(texto).toContain("para a ação de formação https://airtable.com/appN5zpGoVaDyFy4W/recTi2UkI4fJqWliR\n");
   });
 });
