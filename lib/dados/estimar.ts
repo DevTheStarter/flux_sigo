@@ -3,8 +3,8 @@ const BASE: Record<number, [number, number]> = {
   1: [3, 10],
   2: [3, 10],
   3: [3, 10],
-  4: [5, 7],
-  5: [3, 7],
+  4: [2, 2],
+  5: [1, 1],
 };
 
 export interface Estimativa {
@@ -14,12 +14,13 @@ export interface Estimativa {
 
 /**
  * Duração estimada de um flow (minutos).
- * Fase 4 escala com formandos (min*N, max*N). Outras são fixas.
+ * Fases 4 e 5 escalam com formandos (min*N, max*N): 2 min e 1 min por formando.
+ * Outras são fixas.
  */
 export function estimar(fase: number, formandos: number): Estimativa {
   const par = BASE[fase] ?? [3, 10];
   const [min, max] = par;
-  if (fase === 4) {
+  if (fase === 4 || fase === 5) {
     return { min: min * formandos, max: max * formandos };
   }
   return { min, max };

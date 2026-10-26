@@ -190,12 +190,14 @@ describe("§5 calcularPrazo & PRAZOS_DEFAULTS", () => {
 });
 
 describe("§4.8 estimar()", () => {
-  it("12. phase 4 escala com formandos (min*N, max*N)", () => {
-    expect(estimar(4, 2)).toEqual({ min: 10, max: 14 });
-    expect(estimar(4, 10)).toEqual({ min: 50, max: 70 });
+  it("12. phases 4 e 5 escalam com formandos (2 min e 1 min por formando)", () => {
+    expect(estimar(4, 2)).toEqual({ min: 4, max: 4 });
+    expect(estimar(4, 10)).toEqual({ min: 20, max: 20 });
+    expect(estimar(5, 10)).toEqual({ min: 10, max: 10 });
+    expect(estimar(5, 0)).toEqual({ min: 0, max: 0 });
     // outros flows fixos
     expect(estimar(0, 99)).toEqual({ min: 3, max: 10 });
-    expect(estimar(5, 0)).toEqual({ min: 3, max: 7 });
+    expect(estimar(3, 99)).toEqual({ min: 3, max: 10 });
     // formatar
     expect(formatarDuracao({ min: 5, max: 7 })).toBe("5 min a 7 min");
     expect(formatarDuracao({ min: 70, max: 90 })).toBe("1h10 a 1h30");

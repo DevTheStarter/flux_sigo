@@ -221,17 +221,17 @@ Contents, in order:
 
 ### 4.8 Duration estimate
 
-Only phase 4 scales with class size. Everything else is a fixed short task.
+Phases 4 and 5 scale with class size: 2 min per student for phase 4, 1 min per student for phase 5. Everything else is a fixed short task.
 
 ```typescript
-const BASE: Record<number, [number, number]> = { 0:[3,10], 1:[3,10], 2:[3,10], 3:[3,10], 4:[5,7], 5:[3,7] }
+const BASE: Record<number, [number, number]> = { 0:[3,10], 1:[3,10], 2:[3,10], 3:[3,10], 4:[2,2], 5:[1,1] }
 export function estimar(fase: number, formandos: number) {
   const [min, max] = BASE[fase]
-  return fase === 4 ? { min: min*formandos, max: max*formandos } : { min, max }
+  return fase === 4 || fase === 5 ? { min: min*formandos, max: max*formandos } : { min, max }
 }
 ```
 
-Shown as "5 min", "40 min a 56 min", "1h10 a 1h30".
+Shown as "5 min a 7 min", "20 min", "1h10 a 1h30".
 
 ### 4.9 Copy instruction
 
