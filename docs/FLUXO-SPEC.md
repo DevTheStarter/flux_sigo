@@ -673,7 +673,7 @@ Staff sees open and resolved reports in Entidades → the entity's detail, with 
 
 `/api/cron/relatorio`, hourly. For each tenant whose `dia` and `hora` match, derive the board and send one email to every address in `destinatarios`. Recipients do not need an account.
 
-Content, PT-PT: overdue (name, phase, days), blocked (name, reason), due this week (name, phase), concluded this week (name). No personal data. Footer: "Enviado por Fluxo · para deixares de receber, fala com o administrador da tua entidade."
+Content, PT-PT: overdue (name, phase, days), blocked (name, reason), due this week (name, phase), concluded this week (name). No personal data. Ações whose end date is more than 60 days in the past are left out of overdue, blocked and due this week; concluded this week always counts. Footer: "Enviado por Fluxo · para deixares de receber, fala com o administrador da tua entidade."
 
 Settings: on/off, day, hour, editable recipient list. A "Ver pré-visualização" button renders the email with live data. Removing a recipient asks for confirmation.
 

@@ -1,11 +1,21 @@
 import type { Cartao } from "../dados/derivar";
+import { diasDesde } from "../dados/prazos";
 import { escaparHtml } from "./quadro";
 
-/** Conteúdo do relatório semanal (§12), em PT-PT, sem dados pessoais. */
-export function corpoRelatorio(entidade: string, cartoes: Cartao[], data: string): { assunto: string; html: string; texto: string } {
-  const late = cartoes.filter((c) => c.estado === "late");
-  const bloq = cartoes.filter((c) => c.estado === "blocked" || c.estado === "error");
-  const semana = cartoes.filter((c) => c.estado === "today" || (c.estado === "ok" && (c.dias ?? 99) <= 7));
+/** Ações cuja data de fim passou há mais de este número de dias ficam fora do relatório (§12). */
+export const DIAS_RELATORIO_MAX = 60;
+
+/**
+ * Conteúdo do relatório semanal (§12), em PT-PT, sem dados pessoais.
+ * Ações terminadas há mais de `DIAS_RELATORIO_MAX` dias não entram nas secções
+ * de atrasadas, bloqueadas e para esta semana: já não são trabalho corrente.
+ * As concluídas esta semana contam sempre, porque são atividade recente.
+ */
+export function corpoRelatorio(entidade: string, cartoes: Cartao[], data: string, hoje: Date = new Date()): { assunto: string; html: string; texto: string } {
+  const recentes = cartoes.filter((c) => diasDesde(c.acao.dataFim, hoje) <= DIAS_RELATORIO_MAX);
+  const late = recentes.filter((c) => c.estado === "late");
+  const bloq = recentes.filter((c) => c.estado === "blocked" || c.estado === "error");
+  const semana = recentes.filter((c) => c.estado === "today" || (c.estado === "ok" && (c.dias ?? 99) <= 7));
   const concl = cartoes.filter((c) => c.estado === "done" && (c.concluidaHa ?? 99) <= 7);
 
   const seccao = (titulo: string, linhas: string[]) =>

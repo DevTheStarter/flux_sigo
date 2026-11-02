@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { avisoDoCartao } from "../lib/cron/avisos";
-import { corpoRelatorio } from "../lib/cron/relatorio";
+import { corpoRelatorio, DIAS_RELATORIO_MAX } from "../lib/cron/relatorio";
 import { agoraEmLisboa } from "../lib/cron/quadro";
 import type { Cartao } from "../lib/dados/derivar";
 
@@ -53,7 +53,7 @@ describe("§12 relatório semanal", () => {
       cartao({ id: "d", estado: "ok", dias: 20 }),
       cartao({ id: "e", estado: "done", concluidaHa: 2, col: 6 }),
       cartao({ id: "f", estado: "done", concluidaHa: 30, col: 6 }),
-    ], "01/01/2026");
+    ], "01/01/2026", new Date("2026-02-10T12:00:00Z"));
     expect(r.assunto).toContain("1 atrasada");
     expect(r.assunto).toContain("1 bloqueada");
     expect(r.html).toContain("Atrasadas (1)");
@@ -62,6 +62,25 @@ describe("§12 relatório semanal", () => {
     expect(r.html).toContain("Concluídas esta semana (1)");
     expect(r.html).toContain("fala com o administrador da tua entidade");
     expect(r.html).not.toMatch(/[\u{1F300}-\u{1FAFF}]/u);
+  });
+
+  it("ignora ações terminadas há mais de 60 dias, exceto as concluídas esta semana", () => {
+    const hoje = new Date("2026-06-01T12:00:00Z");
+    const antiga = { ...cartao({}).acao, dataFim: "2026-03-01" }; // 92 dias antes
+    const noLimite = { ...cartao({}).acao, dataFim: "2026-04-02" }; // exatamente 60 dias antes
+    const r = corpoRelatorio("Escola", [
+      cartao({ id: "a", estado: "late", dias: 80, col: 3, acao: antiga }),
+      cartao({ id: "b", estado: "blocked", motivo: "Falta tabela", col: 4, acao: antiga }),
+      cartao({ id: "c", estado: "today", col: 4, acao: antiga }),
+      cartao({ id: "d", estado: "late", dias: 40, col: 3, acao: noLimite }),
+      cartao({ id: "e", estado: "done", concluidaHa: 1, col: 6, acao: antiga }),
+    ], "01/06/2026", hoje);
+    expect(DIAS_RELATORIO_MAX).toBe(60);
+    expect(r.html).toContain("Atrasadas (1)");
+    expect(r.html).toContain("Bloqueadas (0)");
+    expect(r.html).toContain("Para esta semana (0)");
+    expect(r.html).toContain("Concluídas esta semana (1)");
+    expect(r.assunto).toBe("Fluxo · relatório semanal de Escola: 1 atrasada, 0 para esta semana");
   });
 });
 
